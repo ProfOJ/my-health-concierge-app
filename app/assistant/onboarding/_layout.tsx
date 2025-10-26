@@ -1,7 +1,11 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import colors from "@/constants/colors";
+import { ArrowLeft } from "lucide-react-native";
+import { TouchableOpacity } from "react-native";
 
 export default function OnboardingLayout() {
+  const router = useRouter();
+
   return (
     <Stack
       screenOptions={{
@@ -14,6 +18,11 @@ export default function OnboardingLayout() {
           fontSize: 20,
         },
         headerTitleAlign: "center",
+        headerLeft: () => (
+          <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+            <ArrowLeft size={24} color={colors.text.primary} />
+          </TouchableOpacity>
+        ),
       }}
     >
       <Stack.Screen name="general" options={{ title: "General Information" }} />
