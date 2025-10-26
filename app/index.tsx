@@ -43,7 +43,7 @@ export default function SplashScreen() {
 
   return (
     <LinearGradient
-      colors={["#B794F6", "#9B7EDE", "#8B6FD4"]}
+      colors={["#ffffff", "#ffffff", "#ffffff"]}
       style={styles.gradient}
     >
       <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
@@ -58,7 +58,7 @@ export default function SplashScreen() {
         >
           <View style={styles.imageContainer}>
             <Image
-              source={{ uri: "https://liberrex.com/wp-content/uploads/2025/04/freepik__the-style-is-candid-image-photography-with-natural__34116-png.webp" }}
+              source={{ uri: "https://www.verifiedmarketreports.com/images/blogs/11-23/Screenshot%202023-11-20%20121218.png" }}
               style={styles.illustration}
               resizeMode="contain"
             />
@@ -68,7 +68,7 @@ export default function SplashScreen() {
           </View>
 
           <View style={styles.textContainer}>
-            <Text style={styles.title}>Skip the{"\n"}stress{"\n"}Get a health {"\n"}Concierge.</Text>
+            <Text style={styles.title}>Skip the stress,{"\n"}Get a health {"\n"}Concierge</Text>
             <Text style={styles.subtitle}>
               Find a personal hospital assistant to simplify {"\n"} your experience at any hospital.
             </Text>
@@ -106,8 +106,8 @@ const styles = StyleSheet.create({
   illustration: {
     width: "100%",
     height: "100%",
-    maxWidth: 280,
-    maxHeight: 280,
+    maxWidth: 380,
+    maxHeight: 380,
     aspectRatio: 1,
     borderRadius: 20,
   },
@@ -144,14 +144,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 42,
     fontWeight: "700" as const,
-    color: "#1A1A1A",
+    color: "#214812",
     marginBottom: 12,
     lineHeight: 50,
   },
   subtitle: {
     fontSize: 15,
     fontWeight: "400" as const,
-    color: "#ffffff",
+    color: "#1A1A1A",
     lineHeight: 22,
   },
   button: {
