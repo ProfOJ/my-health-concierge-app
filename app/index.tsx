@@ -68,7 +68,7 @@ export default function SplashScreen() {
           </View>
 
           <View style={styles.textContainer}>
-            <Text style={styles.title}>Skip the{"\n"}stress & queue.{"\n"}Get a health {"\n"}Concierge.</Text>
+            <Text style={styles.title}>Skip the{"\n"}stress{"\n"}Get a health {"\n"}Concierge.</Text>
             <Text style={styles.subtitle}>
               Find a personal hospital assistant to simplify {"\n"} your experience at any hospital.
             </Text>
