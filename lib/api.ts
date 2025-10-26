@@ -7,13 +7,20 @@ import type {
   LiveSession,
 } from '@/contexts/AppContext';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+const getEnvVar = (key: string): string => {
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env[key] || '';
+  }
+  return '';
+};
+
+const API_BASE_URL = getEnvVar('EXPO_PUBLIC_SUPABASE_URL');
 
 export const api = axios.create({
   baseURL: `${API_BASE_URL}/rest/v1`,
   headers: {
     'Content-Type': 'application/json',
-    apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+    apikey: getEnvVar('EXPO_PUBLIC_SUPABASE_ANON_KEY'),
   },
 });
 

@@ -1,14 +1,30 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+const getEnvVar = (key: string): string => {
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env[key] || '';
+  }
+  return '';
+};
+
+const supabaseUrl = getEnvVar('EXPO_PUBLIC_SUPABASE_URL');
+const supabaseAnonKey = getEnvVar('EXPO_PUBLIC_SUPABASE_ANON_KEY');
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase URL or Anon Key is missing. Please check your .env file.');
+  console.error('⚠️ Supabase credentials are missing!');
+  console.error('supabaseUrl:', supabaseUrl || 'MISSING');
+  console.error('supabaseAnonKey:', supabaseAnonKey ? 'SET (hidden)' : 'MISSING');
+  console.error('\nPlease ensure your .env file exists with:');
+  console.error('EXPO_PUBLIC_SUPABASE_URL=your-url');
+  console.error('EXPO_PUBLIC_SUPABASE_ANON_KEY=your-key');
+  console.error('\nThen restart your dev server with: npx expo start --clear');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+const url = supabaseUrl || 'https://placeholder.supabase.co';
+const key = supabaseAnonKey || 'placeholder-key';
+
+export const supabase = createClient(url, key, {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,

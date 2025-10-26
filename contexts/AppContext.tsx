@@ -96,11 +96,7 @@ export const [AppContextProvider, useApp] = createContextHook(() => {
   const [liveSession, setLiveSession] = useState<LiveSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadPersistedData();
-  }, []);
-
-  const loadPersistedData = async () => {
+  const loadPersistedData = useCallback(async () => {
     try {
       const [storedUserType, storedAssistantId, storedPatientId] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.USER_TYPE),
@@ -130,7 +126,11 @@ export const [AppContextProvider, useApp] = createContextHook(() => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadPersistedData();
+  }, [loadPersistedData]);
 
   const selectUserType = useCallback(async (type: UserType) => {
     setUserType(type);
