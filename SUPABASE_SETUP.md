@@ -52,6 +52,38 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 
 This will create all the necessary tables, indexes, triggers, and policies.
 
+### Important: If You Previously Ran the Schema
+
+If you had previously set up the database and are experiencing 401 errors, the RLS policies need to be updated. Run the SQL again, or specifically run these commands to update the policies:
+
+```sql
+-- Drop old policies
+DROP POLICY IF EXISTS "Allow public read access to hospitals" ON public.hospitals;
+DROP POLICY IF EXISTS "Allow authenticated insert on hospitals" ON public.hospitals;
+DROP POLICY IF EXISTS "Allow public read access to assistants" ON public.assistants;
+DROP POLICY IF EXISTS "Allow insert for assistants" ON public.assistants;
+DROP POLICY IF EXISTS "Allow update for assistants" ON public.assistants;
+DROP POLICY IF EXISTS "Allow public read access to patients" ON public.patients;
+DROP POLICY IF EXISTS "Allow insert for patients" ON public.patients;
+DROP POLICY IF EXISTS "Allow update for patients" ON public.patients;
+DROP POLICY IF EXISTS "Allow public read access to sessions" ON public.sessions;
+DROP POLICY IF EXISTS "Allow insert for sessions" ON public.sessions;
+DROP POLICY IF EXISTS "Allow update for sessions" ON public.sessions;
+DROP POLICY IF EXISTS "Allow public read access to live_sessions" ON public.live_sessions;
+DROP POLICY IF EXISTS "Allow insert for live_sessions" ON public.live_sessions;
+DROP POLICY IF EXISTS "Allow update for live_sessions" ON public.live_sessions;
+DROP POLICY IF EXISTS "Allow public read access to session_media" ON public.session_media;
+DROP POLICY IF EXISTS "Allow insert for session_media" ON public.session_media;
+
+-- Create new permissive policies
+CREATE POLICY "Allow all access to hospitals" ON public.hospitals FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access to assistants" ON public.assistants FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access to patients" ON public.patients FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access to sessions" ON public.sessions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access to live_sessions" ON public.live_sessions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access to session_media" ON public.session_media FOR ALL USING (true) WITH CHECK (true);
+```
+
 ## Step 5: Verify Database Setup
 
 1. Go to the **Table Editor** in your Supabase dashboard

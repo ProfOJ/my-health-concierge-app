@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { supabase } from './supabase';
 import type {
   AssistantProfile,
   PatientProfile,
@@ -25,16 +24,6 @@ export const api = axios.create({
     'apikey': anonKey,
     'Authorization': `Bearer ${anonKey}`,
   },
-});
-
-api.interceptors.request.use(async (config) => {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    config.headers.Authorization = `Bearer ${session.access_token}`;
-  }
-  return config;
 });
 
 export const assistantApi = {

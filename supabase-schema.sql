@@ -144,61 +144,47 @@ ALTER TABLE public.live_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.session_media ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for public access (adjust based on your security requirements)
--- For development, we'll allow all operations. In production, you should restrict these.
+-- For development, we'll allow all operations without authentication.
+-- In production, you should restrict these policies based on authenticated users.
 
--- Hospitals policies
-CREATE POLICY "Allow public read access to hospitals" ON public.hospitals
-    FOR SELECT USING (true);
+-- Hospitals policies (allow all anonymous operations)
+DROP POLICY IF EXISTS "Allow public read access to hospitals" ON public.hospitals;
+CREATE POLICY "Allow all access to hospitals" ON public.hospitals
+    FOR ALL USING (true) WITH CHECK (true);
 
-CREATE POLICY "Allow authenticated insert on hospitals" ON public.hospitals
-    FOR INSERT WITH CHECK (true);
+-- Assistants policies (allow all anonymous operations)
+DROP POLICY IF EXISTS "Allow public read access to assistants" ON public.assistants;
+DROP POLICY IF EXISTS "Allow insert for assistants" ON public.assistants;
+DROP POLICY IF EXISTS "Allow update for assistants" ON public.assistants;
+CREATE POLICY "Allow all access to assistants" ON public.assistants
+    FOR ALL USING (true) WITH CHECK (true);
 
--- Assistants policies
-CREATE POLICY "Allow public read access to assistants" ON public.assistants
-    FOR SELECT USING (true);
+-- Patients policies (allow all anonymous operations)
+DROP POLICY IF EXISTS "Allow public read access to patients" ON public.patients;
+DROP POLICY IF EXISTS "Allow insert for patients" ON public.patients;
+DROP POLICY IF EXISTS "Allow update for patients" ON public.patients;
+CREATE POLICY "Allow all access to patients" ON public.patients
+    FOR ALL USING (true) WITH CHECK (true);
 
-CREATE POLICY "Allow insert for assistants" ON public.assistants
-    FOR INSERT WITH CHECK (true);
+-- Sessions policies (allow all anonymous operations)
+DROP POLICY IF EXISTS "Allow public read access to sessions" ON public.sessions;
+DROP POLICY IF EXISTS "Allow insert for sessions" ON public.sessions;
+DROP POLICY IF EXISTS "Allow update for sessions" ON public.sessions;
+CREATE POLICY "Allow all access to sessions" ON public.sessions
+    FOR ALL USING (true) WITH CHECK (true);
 
-CREATE POLICY "Allow update for assistants" ON public.assistants
-    FOR UPDATE USING (true);
+-- Live sessions policies (allow all anonymous operations)
+DROP POLICY IF EXISTS "Allow public read access to live_sessions" ON public.live_sessions;
+DROP POLICY IF EXISTS "Allow insert for live_sessions" ON public.live_sessions;
+DROP POLICY IF EXISTS "Allow update for live_sessions" ON public.live_sessions;
+CREATE POLICY "Allow all access to live_sessions" ON public.live_sessions
+    FOR ALL USING (true) WITH CHECK (true);
 
--- Patients policies
-CREATE POLICY "Allow public read access to patients" ON public.patients
-    FOR SELECT USING (true);
-
-CREATE POLICY "Allow insert for patients" ON public.patients
-    FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Allow update for patients" ON public.patients
-    FOR UPDATE USING (true);
-
--- Sessions policies
-CREATE POLICY "Allow public read access to sessions" ON public.sessions
-    FOR SELECT USING (true);
-
-CREATE POLICY "Allow insert for sessions" ON public.sessions
-    FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Allow update for sessions" ON public.sessions
-    FOR UPDATE USING (true);
-
--- Live sessions policies
-CREATE POLICY "Allow public read access to live_sessions" ON public.live_sessions
-    FOR SELECT USING (true);
-
-CREATE POLICY "Allow insert for live_sessions" ON public.live_sessions
-    FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Allow update for live_sessions" ON public.live_sessions
-    FOR UPDATE USING (true);
-
--- Session media policies
-CREATE POLICY "Allow public read access to session_media" ON public.session_media
-    FOR SELECT USING (true);
-
-CREATE POLICY "Allow insert for session_media" ON public.session_media
-    FOR INSERT WITH CHECK (true);
+-- Session media policies (allow all anonymous operations)
+DROP POLICY IF EXISTS "Allow public read access to session_media" ON public.session_media;
+DROP POLICY IF EXISTS "Allow insert for session_media" ON public.session_media;
+CREATE POLICY "Allow all access to session_media" ON public.session_media
+    FOR ALL USING (true) WITH CHECK (true);
 
 -- Insert sample hospitals data
 INSERT INTO public.hospitals (name, location, city) VALUES
