@@ -26,6 +26,28 @@ export const api = axios.create({
   },
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      console.error('❌ API Error Details:');
+      console.error('Status:', error.response.status);
+      console.error('Status Text:', error.response.statusText);
+      console.error('URL:', error.config?.url);
+      console.error('Method:', error.config?.method?.toUpperCase());
+      console.error('Request Data:', JSON.stringify(error.config?.data, null, 2));
+      console.error('Response Data:', JSON.stringify(error.response.data, null, 2));
+      console.error('Response Headers:', JSON.stringify(error.response.headers, null, 2));
+    } else if (error.request) {
+      console.error('❌ No Response Received:');
+      console.error('Request:', error.request);
+    } else {
+      console.error('❌ Error:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const assistantApi = {
   async create(profile: Omit<AssistantProfile, 'id'>) {
     const { data } = await api.post('/assistants', {
