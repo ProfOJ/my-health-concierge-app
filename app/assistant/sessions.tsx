@@ -2,13 +2,17 @@ import colors from "@/constants/colors";
 import { useApp } from "@/contexts/AppContext";
 import { mockSessions } from "@/constants/mockSessions";
 import { useRouter } from "expo-router";
-import { Briefcase, Check, Clock, User, X } from "lucide-react-native";
-import { useEffect } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Briefcase, Check, Clock, Search, User, X } from "lucide-react-native";
+import { useEffect, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+
+type FilterType = "all" | "pending" | "ongoing" | "completed" | "open";
 
 export default function SessionsScreen() {
   const { sessions, updateSession, addSession } = useApp();
   const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
   useEffect(() => {
     if (sessions.length === 0) {
@@ -64,29 +68,118 @@ export default function SessionsScreen() {
     return `${hours}h ${remainingMins}m`;
   };
 
-  const activeSessions = sessions.filter(
-    (s) => s.status !== "completed" && s.status !== "declined"
-  );
+  const getFilteredSessions = () => {
+    let filtered = sessions;
+
+    switch (activeFilter) {
+      case "pending":
+        filtered = sessions.filter((s) => s.status === "pending");
+        break;
+      case "ongoing":
+        filtered = sessions.filter((s) => s.status === "accepted");
+        break;
+      case "completed":
+        filtered = sessions.filter((s) => s.status === "completed");
+        break;
+      case "open":
+        filtered = sessions.filter(
+          (s) => s.status !== "completed" && s.status !== "declined"
+        );
+        break;
+      case "all":
+      default:
+        filtered = sessions.filter((s) => s.status !== "declined");
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (s) =>
+          s.requesterName.toLowerCase().includes(query) ||
+          s.patientName?.toLowerCase().includes(query) ||
+          s.hospitalName?.toLowerCase().includes(query) ||
+          s.specialService?.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  };
+
+  const filteredSessions = getFilteredSessions();
+
+  const filters: { type: FilterType; label: string }[] = [
+    { type: "all", label: "All" },
+    { type: "pending", label: "My Pending" },
+    { type: "ongoing", label: "Ongoing" },
+    { type: "completed", label: "Completed" },
+    { type: "open", label: "All Open Requests" },
+  ];
 
   return (
     <View style={styles.container}>
+      <View style={styles.searchFilterSection}>
+        <View style={styles.searchContainer}>
+          <Search size={20} color={colors.text.secondary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search sessions..."
+            placeholderTextColor={colors.text.light}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersContainer}
+        >
+          {filters.map((filter) => (
+            <Pressable
+              key={filter.type}
+              style={({ pressed }) => [
+                styles.filterChip,
+                activeFilter === filter.type && styles.filterChipActive,
+                pressed && styles.filterChipPressed,
+              ]}
+              onPress={() => setActiveFilter(filter.type)}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  activeFilter === filter.type && styles.filterChipTextActive,
+                ]}
+              >
+                {filter.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {activeSessions.length === 0 ? (
+        {filteredSessions.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIcon}>
               <Briefcase size={40} color={colors.text.light} />
             </View>
-            <Text style={styles.emptyTitle}>No sessions yet</Text>
+            <Text style={styles.emptyTitle}>
+              {searchQuery || activeFilter !== "all"
+                ? "No sessions found"
+                : "No sessions yet"}
+            </Text>
             <Text style={styles.emptyDescription}>
-              Your session requests will appear here
+              {searchQuery || activeFilter !== "all"
+                ? "Try adjusting your search or filter"
+                : "Your session requests will appear here"}
             </Text>
           </View>
         ) : (
           <View style={styles.sessionsList}>
-            {activeSessions.map((session) => (
+            {filteredSessions.map((session) => (
               <Pressable
                 key={session.id}
                 style={({ pressed }) => [
@@ -183,6 +276,59 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,
+  },
+  searchFilterSection: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 8,
+    backgroundColor: colors.background.primary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.background.secondary,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+    borderWidth: 2,
+    borderColor: colors.border.light,
+    marginBottom: 16,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.text.primary,
+  },
+  filtersContainer: {
+    flexDirection: "row",
+    gap: 8,
+    paddingBottom: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.background.secondary,
+    borderWidth: 2,
+    borderColor: colors.border.light,
+  },
+  filterChipActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  filterChipPressed: {
+    opacity: 0.7,
+  },
+  filterChipText: {
+    fontSize: 14,
+    fontWeight: "600" as const,
+    color: colors.text.secondary,
+  },
+  filterChipTextActive: {
+    color: colors.text.inverse,
   },
   scrollContent: {
     padding: 24,
