@@ -7,6 +7,14 @@ import { OnboardingContextProvider } from "@/contexts/OnboardingContext";
 export default function OnboardingLayout() {
   const router = useRouter();
 
+  const handleBackPress = (screenName: string) => {
+    if (screenName === 'general') {
+      router.push('/user-type');
+    } else {
+      router.back();
+    }
+  };
+
   return (
     <OnboardingContextProvider>
       <Stack
@@ -20,18 +28,63 @@ export default function OnboardingLayout() {
             fontSize: 20,
           },
           headerTitleAlign: "center",
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
-              <ArrowLeft size={24} color={colors.text.primary} />
-            </TouchableOpacity>
-          ),
         }}
       >
-        <Stack.Screen name="general" options={{ title: "General Information" }} />
-        <Stack.Screen name="kyc" options={{ title: "KYC Verification" }} />
-        <Stack.Screen name="services" options={{ title: "Services Offered" }} />
-        <Stack.Screen name="pricing" options={{ title: "Pricing" }} />
-        <Stack.Screen name="review" options={{ title: "Review & Submit" }} />
+        <Stack.Screen 
+          name="general" 
+          options={{ 
+            title: "General Information",
+            headerLeft: () => (
+              <TouchableOpacity onPress={() => handleBackPress('general')} style={{ padding: 8 }}>
+                <ArrowLeft size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            ),
+          }} 
+        />
+        <Stack.Screen 
+          name="kyc" 
+          options={{ 
+            title: "KYC Verification",
+            headerLeft: () => (
+              <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+                <ArrowLeft size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            ),
+          }} 
+        />
+        <Stack.Screen 
+          name="services" 
+          options={{ 
+            title: "Services Offered",
+            headerLeft: () => (
+              <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+                <ArrowLeft size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            ),
+          }} 
+        />
+        <Stack.Screen 
+          name="pricing" 
+          options={{ 
+            title: "Pricing",
+            headerLeft: () => (
+              <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+                <ArrowLeft size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            ),
+          }} 
+        />
+        <Stack.Screen 
+          name="review" 
+          options={{ 
+            title: "Review & Submit",
+            headerLeft: () => (
+              <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+                <ArrowLeft size={24} color={colors.text.primary} />
+              </TouchableOpacity>
+            ),
+          }} 
+        />
       </Stack>
     </OnboardingContextProvider>
   );
