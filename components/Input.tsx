@@ -13,7 +13,7 @@ interface InputProps extends TextInputProps {
   error?: string;
 }
 
-export function Input({ label, error, ...props }: InputProps) {
+export function Input({ label, error, style, multiline, ...props }: InputProps) {
   const [isFocused, setIsFocused] = useState(false);
 
   return (
@@ -22,12 +22,15 @@ export function Input({ label, error, ...props }: InputProps) {
       <TextInput
         style={[
           styles.input,
+          multiline && styles.multilineInput,
           isFocused && styles.inputFocused,
           error && styles.inputError,
+          style,
         ]}
         placeholderTextColor={colors.text.light}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
+        multiline={multiline}
         {...props}
       />
       {error && <Text style={styles.errorText}>{error}</Text>}
@@ -55,6 +58,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text.primary,
     minHeight: 56,
+  },
+  multilineInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: colors.text.primary,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    textAlignVertical: 'top',
   },
   inputFocused: {
     borderColor: colors.primary,
