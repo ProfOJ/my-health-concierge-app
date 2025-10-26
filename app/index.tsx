@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     maxWidth: 280,
     maxHeight: 280,
     aspectRatio: 1,
-    borderRadius: 10,
+    borderRadius: 80,
   },
   decorTop1: {
     position: "absolute",
