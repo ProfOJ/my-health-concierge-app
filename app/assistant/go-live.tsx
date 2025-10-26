@@ -1,6 +1,7 @@
 import { Button } from "@/components/Button";
 import colors from "@/constants/colors";
 import { HOSPITALS } from "@/constants/hospitals";
+import { useApp } from "@/contexts/AppContext";
 import { useRouter } from "expo-router";
 import { Calendar, ChevronDown, MapPin, X } from "lucide-react-native";
 import { useState } from "react";
@@ -16,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function GoLiveScreen() {
+  const { goLive } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [selectedHospital, setSelectedHospital] = useState<string>("");
@@ -38,7 +40,20 @@ export default function GoLiveScreen() {
     setHospitalSearch("");
   };
 
-  const handleStartReceiving = () => {
+  const handleStartReceiving = async () => {
+    const selectedHospitalData = HOSPITALS.find((h) => h.id === selectedHospital);
+    if (!selectedHospitalData) return;
+
+    await goLive({
+      hospitalId: selectedHospital,
+      hospitalName: selectedHospitalData.name,
+      fromDate,
+      fromTime,
+      toDate,
+      toTime,
+      startedAt: new Date().toISOString(),
+    });
+
     console.log("Starting to receive requests", {
       hospital: selectedHospital,
       from: `${fromDate} ${fromTime}`,

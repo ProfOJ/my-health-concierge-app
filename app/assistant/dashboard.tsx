@@ -1,14 +1,18 @@
 import colors from "@/constants/colors";
 import { useApp } from "@/contexts/AppContext";
 import { useRouter } from "expo-router";
-import { Briefcase, Clock, Users, Settings } from "lucide-react-native";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Briefcase, Clock, Users, Settings, X } from "lucide-react-native";
+import { useState } from "react";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Button } from "@/components/Button";
 
 export default function AssistantDashboard() {
-  const { assistantProfile } = useApp();
+  const { assistantProfile, liveSession, goOffline } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [showOfflineModal, setShowOfflineModal] = useState(false);
+  const [offlineNotes, setOfflineNotes] = useState("");
 
   const stats = {
     hoursInService: 47,
@@ -84,10 +88,16 @@ export default function AssistantDashboard() {
 
         <Pressable
           style={styles.navItem}
-          onPress={() => router.push("/assistant/go-live")}
+          onPress={() => {
+            if (liveSession) {
+              setShowOfflineModal(true);
+            } else {
+              router.push("/assistant/go-live");
+            }
+          }}
         >
-          <View style={styles.goLiveButton}>
-            <Text style={styles.goLiveText}>Go{"\n"}Live</Text>
+          <View style={[styles.goLiveButton, liveSession && styles.goLiveButtonActive]}>
+            <Text style={styles.goLiveText}>{liveSession ? "Close" : "Go\nLive"}</Text>
           </View>
         </Pressable>
 
@@ -99,6 +109,51 @@ export default function AssistantDashboard() {
           <Text style={styles.navText}>Profile</Text>
         </Pressable>
       </View>
+
+      <Modal visible={showOfflineModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Go Offline</Text>
+              <Pressable
+                style={styles.modalCloseButton}
+                onPress={() => {
+                  setShowOfflineModal(false);
+                  setOfflineNotes("");
+                }}
+              >
+                <X size={24} color={colors.text.primary} />
+              </Pressable>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.modalLabel}>Any information to share?</Text>
+              <TextInput
+                style={styles.notesInput}
+                value={offlineNotes}
+                onChangeText={setOfflineNotes}
+                placeholder="Share any notes or updates..."
+                placeholderTextColor={colors.text.light}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <View style={styles.modalFooter}>
+              <Button
+                title="Go Offline"
+                onPress={async () => {
+                  console.log("Going offline with notes:", offlineNotes);
+                  await goOffline();
+                  setShowOfflineModal(false);
+                  setOfflineNotes("");
+                }}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -265,5 +320,71 @@ const styles = StyleSheet.create({
     color: colors.text.inverse,
     textAlign: "center",
     lineHeight: 20,
+  },
+  goLiveButtonActive: {
+    backgroundColor: colors.error,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  modalContent: {
+    backgroundColor: colors.background.primary,
+    borderRadius: 24,
+    width: "100%",
+    maxWidth: 500,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "800" as const,
+    color: colors.text.primary,
+  },
+  modalCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.background.secondary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalBody: {
+    padding: 24,
+  },
+  modalLabel: {
+    fontSize: 15,
+    fontWeight: "600" as const,
+    color: colors.text.primary,
+    marginBottom: 12,
+  },
+  notesInput: {
+    backgroundColor: colors.background.secondary,
+    borderWidth: 2,
+    borderColor: colors.border.medium,
+    borderRadius: 16,
+    padding: 16,
+    fontSize: 16,
+    color: colors.text.primary,
+    minHeight: 140,
+  },
+  modalFooter: {
+    padding: 24,
+    paddingTop: 0,
   },
 });

@@ -66,11 +66,22 @@ export interface SessionRequest {
   };
 }
 
+export interface LiveSession {
+  hospitalId: string;
+  hospitalName: string;
+  fromDate: string;
+  fromTime: string;
+  toDate: string;
+  toTime: string;
+  startedAt: string;
+}
+
 const STORAGE_KEYS = {
   USER_TYPE: "@health_concierge:user_type",
   ASSISTANT_PROFILE: "@health_concierge:assistant_profile",
   PATIENT_PROFILE: "@health_concierge:patient_profile",
   SESSIONS: "@health_concierge:sessions",
+  LIVE_SESSION: "@health_concierge:live_session",
 };
 
 export const [AppContextProvider, useApp] = createContextHook(() => {
@@ -78,6 +89,7 @@ export const [AppContextProvider, useApp] = createContextHook(() => {
   const [assistantProfile, setAssistantProfile] = useState<AssistantProfile | null>(null);
   const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(null);
   const [sessions, setSessions] = useState<SessionRequest[]>([]);
+  const [liveSession, setLiveSession] = useState<LiveSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -86,17 +98,19 @@ export const [AppContextProvider, useApp] = createContextHook(() => {
 
   const loadPersistedData = async () => {
     try {
-      const [storedUserType, storedAssistant, storedPatient, storedSessions] = await Promise.all([
+      const [storedUserType, storedAssistant, storedPatient, storedSessions, storedLiveSession] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.USER_TYPE),
         AsyncStorage.getItem(STORAGE_KEYS.ASSISTANT_PROFILE),
         AsyncStorage.getItem(STORAGE_KEYS.PATIENT_PROFILE),
         AsyncStorage.getItem(STORAGE_KEYS.SESSIONS),
+        AsyncStorage.getItem(STORAGE_KEYS.LIVE_SESSION),
       ]);
 
       if (storedUserType) setUserType(storedUserType as UserType);
       if (storedAssistant) setAssistantProfile(JSON.parse(storedAssistant));
       if (storedPatient) setPatientProfile(JSON.parse(storedPatient));
       if (storedSessions) setSessions(JSON.parse(storedSessions));
+      if (storedLiveSession) setLiveSession(JSON.parse(storedLiveSession));
     } catch (error) {
       console.error("Failed to load persisted data:", error);
     } finally {
@@ -135,17 +149,29 @@ export const [AppContextProvider, useApp] = createContextHook(() => {
     await AsyncStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(updatedSessions));
   }, [sessions]);
 
+  const goLive = useCallback(async (session: LiveSession) => {
+    setLiveSession(session);
+    await AsyncStorage.setItem(STORAGE_KEYS.LIVE_SESSION, JSON.stringify(session));
+  }, []);
+
+  const goOffline = useCallback(async () => {
+    setLiveSession(null);
+    await AsyncStorage.removeItem(STORAGE_KEYS.LIVE_SESSION);
+  }, []);
+
   const resetApp = useCallback(async () => {
     await AsyncStorage.multiRemove([
       STORAGE_KEYS.USER_TYPE,
       STORAGE_KEYS.ASSISTANT_PROFILE,
       STORAGE_KEYS.PATIENT_PROFILE,
       STORAGE_KEYS.SESSIONS,
+      STORAGE_KEYS.LIVE_SESSION,
     ]);
     setUserType(null);
     setAssistantProfile(null);
     setPatientProfile(null);
     setSessions([]);
+    setLiveSession(null);
   }, []);
 
   return useMemo(
@@ -154,12 +180,15 @@ export const [AppContextProvider, useApp] = createContextHook(() => {
       assistantProfile,
       patientProfile,
       sessions,
+      liveSession,
       isLoading,
       selectUserType,
       saveAssistantProfile,
       savePatientProfile,
       addSession,
       updateSession,
+      goLive,
+      goOffline,
       resetApp,
     }),
     [
@@ -167,12 +196,15 @@ export const [AppContextProvider, useApp] = createContextHook(() => {
       assistantProfile,
       patientProfile,
       sessions,
+      liveSession,
       isLoading,
       selectUserType,
       saveAssistantProfile,
       savePatientProfile,
       addSession,
       updateSession,
+      goLive,
+      goOffline,
       resetApp,
     ]
   );
