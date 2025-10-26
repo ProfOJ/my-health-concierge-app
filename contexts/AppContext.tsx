@@ -143,7 +143,9 @@ export const [AppContextProvider, useApp] = createContextHook(() => {
     async (profile: AssistantProfile) => {
       try {
         let savedProfile: AssistantProfile;
-        if (profile.id) {
+        const isValidUUID = profile.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(profile.id);
+        
+        if (isValidUUID) {
           savedProfile = await assistantApi.update(profile.id, profile);
         } else {
           const { id, ...profileWithoutId } = profile;
@@ -164,7 +166,9 @@ export const [AppContextProvider, useApp] = createContextHook(() => {
     async (profile: PatientProfile) => {
       try {
         let savedProfile: PatientProfile;
-        if (profile.id) {
+        const isValidUUID = profile.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(profile.id);
+        
+        if (isValidUUID) {
           savedProfile = await patientApi.update(profile.id, profile);
         } else {
           const { id, ...profileWithoutId } = profile;
@@ -184,11 +188,24 @@ export const [AppContextProvider, useApp] = createContextHook(() => {
   const addSession = useCallback(
     async (session: SessionRequest) => {
       try {
-        const { id, createdAt, ...sessionWithoutId } = session;
-        const savedSession = await sessionApi.create(sessionWithoutId);
-        setSessions((prev) => [savedSession, ...prev]);
-        console.log("Session added successfully:", savedSession.id);
-        return savedSession;
+        const isValidUUID = session.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(session.id);
+        
+        if (isValidUUID) {
+          const updatedSession = await sessionApi.update(session.id, session);
+          setSessions((prev) =>
+            prev.some((s) => s.id === session.id)
+              ? prev.map((s) => (s.id === session.id ? updatedSession : s))
+              : [updatedSession, ...prev]
+          );
+          console.log("Session updated successfully:", updatedSession.id);
+          return updatedSession;
+        } else {
+          const { id, createdAt, ...sessionWithoutId } = session;
+          const savedSession = await sessionApi.create(sessionWithoutId);
+          setSessions((prev) => [savedSession, ...prev]);
+          console.log("Session added successfully:", savedSession.id);
+          return savedSession;
+        }
       } catch (error) {
         console.error("Failed to add session:", error);
         throw error;
