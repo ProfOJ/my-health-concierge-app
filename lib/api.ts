@@ -16,11 +16,14 @@ const getEnvVar = (key: string): string => {
 
 const API_BASE_URL = getEnvVar('EXPO_PUBLIC_SUPABASE_URL');
 
+const anonKey = getEnvVar('EXPO_PUBLIC_SUPABASE_ANON_KEY');
+
 export const api = axios.create({
   baseURL: `${API_BASE_URL}/rest/v1`,
   headers: {
     'Content-Type': 'application/json',
-    apikey: getEnvVar('EXPO_PUBLIC_SUPABASE_ANON_KEY'),
+    'apikey': anonKey,
+    'Authorization': `Bearer ${anonKey}`,
   },
 });
 
