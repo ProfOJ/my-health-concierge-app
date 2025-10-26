@@ -4,7 +4,8 @@ import colors from "@/constants/colors";
 import { HEALTHCARE_ROLES, HEALTHCARE_SERVICES } from "@/constants/assistants";
 import { useApp } from "@/contexts/AppContext";
 import * as ImagePicker from "expo-image-picker";
-import { Camera, Check, ChevronDown, ChevronRight, Upload } from "lucide-react-native";
+import { Camera, Check, ChevronDown, ChevronRight, Upload, Database } from "lucide-react-native";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Image,
@@ -21,6 +22,7 @@ type PricingModel = "fixed" | "hourly" | "bespoke";
 
 export default function ProfileScreen() {
   const { assistantProfile, saveAssistantProfile } = useApp();
+  const router = useRouter();
   const [expandedSection, setExpandedSection] = useState<AccordionSection>(null);
   const [showRolePicker, setShowRolePicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -178,6 +180,20 @@ export default function ProfileScreen() {
             </Text>
           </View>
         </View>
+
+        <Pressable
+          style={styles.testButton}
+          onPress={() => router.push("/assistant/db-test")}
+        >
+          <View style={styles.testButtonContent}>
+            <Database size={24} color={colors.primary} />
+            <View style={styles.testButtonText}>
+              <Text style={styles.testButtonTitle}>Database Connection Test</Text>
+              <Text style={styles.testButtonDescription}>Test CRUD operations</Text>
+            </View>
+            <ChevronRight size={20} color={colors.text.secondary} />
+          </View>
+        </Pressable>
 
         <View style={styles.accordionContainer}>
           <Pressable
@@ -914,5 +930,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600" as const,
     color: colors.primary,
+  },
+  testButton: {
+    backgroundColor: colors.background.primary,
+    borderRadius: 16,
+    marginBottom: 24,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  testButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 20,
+    gap: 16,
+  },
+  testButtonText: {
+    flex: 1,
+  },
+  testButtonTitle: {
+    fontSize: 16,
+    fontWeight: "700" as const,
+    color: colors.text.primary,
+    marginBottom: 4,
+  },
+  testButtonDescription: {
+    fontSize: 14,
+    color: colors.text.secondary,
   },
 });
