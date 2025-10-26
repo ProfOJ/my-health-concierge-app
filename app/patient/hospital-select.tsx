@@ -2,7 +2,7 @@ import colors from "@/constants/colors";
 import type { Hospital } from "@/constants/hospitals";
 import { hospitalApi } from "@/lib/api";
 import { useRouter } from "expo-router";
-import { MapPin, Search, ChevronRight } from "lucide-react-native";
+import { MapPin, Search, ChevronRight, ArrowLeft } from "lucide-react-native";
 import { useState, useEffect } from "react";
 import {
   Pressable,
@@ -46,6 +46,12 @@ export default function HospitalSelectScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <ArrowLeft size={24} color={colors.text.primary} />
+        </Pressable>
         <Text style={styles.title}>Which hospital are you headed to?</Text>
         <View style={styles.searchContainer}>
           <Search size={20} color={colors.text.light} style={styles.searchIcon} />
@@ -102,6 +108,13 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     backgroundColor: colors.background.cream,
     borderBottomWidth: 0,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
   },
   title: {
     fontSize: 26,
