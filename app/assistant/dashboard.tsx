@@ -2,10 +2,11 @@ import colors from "@/constants/colors";
 import { useApp } from "@/contexts/AppContext";
 import { useRouter } from "expo-router";
 import { Briefcase, Clock, Users, Settings, X } from "lucide-react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/Button";
+import { statsApi } from "@/lib/api";
 
 export default function AssistantDashboard() {
   const { assistantProfile, liveSession, goOffline } = useApp();
@@ -13,12 +14,51 @@ export default function AssistantDashboard() {
   const insets = useSafeAreaInsets();
   const [showOfflineModal, setShowOfflineModal] = useState(false);
   const [offlineNotes, setOfflineNotes] = useState("");
-
-  const stats = {
-    hoursInService: 47,
-    patientsServed: 23,
+  const [stats, setStats] = useState({
+    hoursInService: 0,
+    patientsServed: 0,
     activeSessions: 0,
-  };
+  });
+  const [liveTimer, setLiveTimer] = useState<string>("");
+
+  useEffect(() => {
+    if (assistantProfile?.id) {
+      statsApi.getAssistantStats(assistantProfile.id).then((fetchedStats) => {
+        setStats({
+          ...fetchedStats,
+          activeSessions: 0,
+        });
+      }).catch((error) => {
+        console.error("Failed to fetch stats:", error);
+      });
+    }
+  }, [assistantProfile?.id]);
+
+  useEffect(() => {
+    if (!liveSession?.startedAt) {
+      setLiveTimer("");
+      return;
+    }
+
+    const updateTimer = () => {
+      const startTime = new Date(liveSession.startedAt).getTime();
+      const now = new Date().getTime();
+      const diff = now - startTime;
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      setLiveTimer(
+        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+      );
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(interval);
+  }, [liveSession]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -26,6 +66,12 @@ export default function AssistantDashboard() {
         <View>
           <Text style={styles.greeting}>Welcome back!</Text>
           <Text style={styles.name}>{assistantProfile?.name || "Health Assistant"}</Text>
+          {liveSession && liveTimer && (
+            <View style={styles.liveTimerContainer}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveTimerText}>Live • {liveTimer}</Text>
+            </View>
+          )}
         </View>
         <Pressable
           style={styles.settingsButton}
@@ -181,6 +227,28 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700" as const,
     color: colors.text.primary,
+  },
+  liveTimerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: colors.error + "15",
+    borderRadius: 12,
+    alignSelf: "flex-start",
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.error,
+    marginRight: 6,
+  },
+  liveTimerText: {
+    fontSize: 14,
+    fontWeight: "600" as const,
+    color: colors.error,
   },
   settingsButton: {
     width: 44,

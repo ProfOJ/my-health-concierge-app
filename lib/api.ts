@@ -361,6 +361,34 @@ export const liveSessionApi = {
   },
 };
 
+export const statsApi = {
+  async getAssistantStats(assistantId: string) {
+    const { data: completedSessions } = await api.get(
+      `/sessions?assistant_id=eq.${assistantId}&status=eq.completed`
+    );
+    
+    const totalHours = completedSessions.reduce((sum: number, session: Record<string, unknown>) => {
+      const acceptedAt = session.accepted_at as string | null;
+      const completedAt = session.completed_at as string | null;
+      
+      if (acceptedAt && completedAt) {
+        const duration = new Date(completedAt).getTime() - new Date(acceptedAt).getTime();
+        return sum + (duration / (1000 * 60 * 60));
+      }
+      return sum;
+    }, 0);
+    
+    const uniquePatients = new Set(
+      completedSessions.map((session: Record<string, unknown>) => session.patient_id)
+    ).size;
+    
+    return {
+      hoursInService: Math.round(totalHours),
+      patientsServed: uniquePatients,
+    };
+  },
+};
+
 export const hospitalApi = {
   async getAll() {
     const { data } = await api.get('/hospitals');
