@@ -145,7 +145,7 @@ export default function AssistantDashboard() {
                 title="Go Offline"
                 onPress={async () => {
                   console.log("Going offline with notes:", offlineNotes);
-                  await goOffline();
+                  await goOffline(offlineNotes);
                   setShowOfflineModal(false);
                   setOfflineNotes("");
                 }}

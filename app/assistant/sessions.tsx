@@ -1,6 +1,5 @@
 import colors from "@/constants/colors";
 import { useApp } from "@/contexts/AppContext";
-import { mockSessions } from "@/constants/mockSessions";
 import { useRouter } from "expo-router";
 import { Briefcase, Check, Clock, Search, User, X } from "lucide-react-native";
 import { useEffect, useState } from "react";
@@ -9,16 +8,14 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-
 type FilterType = "all" | "pending" | "ongoing" | "completed" | "open";
 
 export default function SessionsScreen() {
-  const { sessions, updateSession, addSession } = useApp();
+  const { sessions, updateSession, refreshSessions } = useApp();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
   useEffect(() => {
-    if (sessions.length === 0) {
-      mockSessions.forEach((session) => addSession(session));
-    }
-  }, []);
+    refreshSessions();
+  }, [refreshSessions]);
 
   const handleAccept = (sessionId: string) => {
     updateSession(sessionId, {
@@ -30,14 +27,6 @@ export default function SessionsScreen() {
 
   const handleReject = (sessionId: string) => {
     updateSession(sessionId, { status: "declined" });
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-    });
   };
 
   const getTimeAgo = (dateString: string) => {

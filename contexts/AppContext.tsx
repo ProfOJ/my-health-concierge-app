@@ -1,6 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import createContextHook from "@nkzw/create-context-hook";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  assistantApi,
+  patientApi,
+  sessionApi,
+  liveSessionApi,
+} from "@/lib/api";
 
 export type UserType = "assistant" | "patient" | null;
 
@@ -78,10 +84,8 @@ export interface LiveSession {
 
 const STORAGE_KEYS = {
   USER_TYPE: "@health_concierge:user_type",
-  ASSISTANT_PROFILE: "@health_concierge:assistant_profile",
-  PATIENT_PROFILE: "@health_concierge:patient_profile",
-  SESSIONS: "@health_concierge:sessions",
-  LIVE_SESSION: "@health_concierge:live_session",
+  ASSISTANT_ID: "@health_concierge:assistant_id",
+  PATIENT_ID: "@health_concierge:patient_id",
 };
 
 export const [AppContextProvider, useApp] = createContextHook(() => {
@@ -98,19 +102,29 @@ export const [AppContextProvider, useApp] = createContextHook(() => {
 
   const loadPersistedData = async () => {
     try {
-      const [storedUserType, storedAssistant, storedPatient, storedSessions, storedLiveSession] = await Promise.all([
+      const [storedUserType, storedAssistantId, storedPatientId] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.USER_TYPE),
-        AsyncStorage.getItem(STORAGE_KEYS.ASSISTANT_PROFILE),
-        AsyncStorage.getItem(STORAGE_KEYS.PATIENT_PROFILE),
-        AsyncStorage.getItem(STORAGE_KEYS.SESSIONS),
-        AsyncStorage.getItem(STORAGE_KEYS.LIVE_SESSION),
+        AsyncStorage.getItem(STORAGE_KEYS.ASSISTANT_ID),
+        AsyncStorage.getItem(STORAGE_KEYS.PATIENT_ID),
       ]);
 
       if (storedUserType) setUserType(storedUserType as UserType);
-      if (storedAssistant) setAssistantProfile(JSON.parse(storedAssistant));
-      if (storedPatient) setPatientProfile(JSON.parse(storedPatient));
-      if (storedSessions) setSessions(JSON.parse(storedSessions));
-      if (storedLiveSession) setLiveSession(JSON.parse(storedLiveSession));
+
+      if (storedAssistantId) {
+        const profile = await assistantApi.getById(storedAssistantId);
+        if (profile) {
+          setAssistantProfile(profile);
+          const activeLive = await liveSessionApi.getActive(storedAssistantId);
+          if (activeLive) setLiveSession(activeLive);
+          const assistantSessions = await sessionApi.getByAssistant(storedAssistantId);
+          setSessions(assistantSessions);
+        }
+      }
+
+      if (storedPatientId) {
+        const profile = await patientApi.getById(storedPatientId);
+        if (profile) setPatientProfile(profile);
+      }
     } catch (error) {
       console.error("Failed to load persisted data:", error);
     } finally {
@@ -125,47 +139,128 @@ export const [AppContextProvider, useApp] = createContextHook(() => {
     }
   }, []);
 
-  const saveAssistantProfile = useCallback(async (profile: AssistantProfile) => {
-    setAssistantProfile(profile);
-    await AsyncStorage.setItem(STORAGE_KEYS.ASSISTANT_PROFILE, JSON.stringify(profile));
-  }, []);
+  const saveAssistantProfile = useCallback(
+    async (profile: AssistantProfile) => {
+      try {
+        let savedProfile: AssistantProfile;
+        if (profile.id) {
+          savedProfile = await assistantApi.update(profile.id, profile);
+        } else {
+          const { id, ...profileWithoutId } = profile;
+          savedProfile = await assistantApi.create(profileWithoutId);
+          await AsyncStorage.setItem(STORAGE_KEYS.ASSISTANT_ID, savedProfile.id);
+        }
+        setAssistantProfile(savedProfile);
+        console.log("Assistant profile saved successfully:", savedProfile.id);
+      } catch (error) {
+        console.error("Failed to save assistant profile:", error);
+        throw error;
+      }
+    },
+    []
+  );
 
-  const savePatientProfile = useCallback(async (profile: PatientProfile) => {
-    setPatientProfile(profile);
-    await AsyncStorage.setItem(STORAGE_KEYS.PATIENT_PROFILE, JSON.stringify(profile));
-  }, []);
+  const savePatientProfile = useCallback(
+    async (profile: PatientProfile) => {
+      try {
+        let savedProfile: PatientProfile;
+        if (profile.id) {
+          savedProfile = await patientApi.update(profile.id, profile);
+        } else {
+          const { id, ...profileWithoutId } = profile;
+          savedProfile = await patientApi.create(profileWithoutId);
+          await AsyncStorage.setItem(STORAGE_KEYS.PATIENT_ID, savedProfile.id);
+        }
+        setPatientProfile(savedProfile);
+        console.log("Patient profile saved successfully:", savedProfile.id);
+      } catch (error) {
+        console.error("Failed to save patient profile:", error);
+        throw error;
+      }
+    },
+    []
+  );
 
-  const addSession = useCallback(async (session: SessionRequest) => {
-    const updatedSessions = [...sessions, session];
-    setSessions(updatedSessions);
-    await AsyncStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(updatedSessions));
-  }, [sessions]);
+  const addSession = useCallback(
+    async (session: SessionRequest) => {
+      try {
+        const { id, createdAt, ...sessionWithoutId } = session;
+        const savedSession = await sessionApi.create(sessionWithoutId);
+        setSessions((prev) => [savedSession, ...prev]);
+        console.log("Session added successfully:", savedSession.id);
+        return savedSession;
+      } catch (error) {
+        console.error("Failed to add session:", error);
+        throw error;
+      }
+    },
+    []
+  );
 
-  const updateSession = useCallback(async (sessionId: string, updates: Partial<SessionRequest>) => {
-    const updatedSessions = sessions.map((s) =>
-      s.id === sessionId ? { ...s, ...updates } : s
-    );
-    setSessions(updatedSessions);
-    await AsyncStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(updatedSessions));
-  }, [sessions]);
+  const updateSession = useCallback(
+    async (sessionId: string, updates: Partial<SessionRequest>) => {
+      try {
+        const updatedSession = await sessionApi.update(sessionId, updates);
+        setSessions((prev) =>
+          prev.map((s) => (s.id === sessionId ? updatedSession : s))
+        );
+        console.log("Session updated successfully:", sessionId);
+      } catch (error) {
+        console.error("Failed to update session:", error);
+        throw error;
+      }
+    },
+    []
+  );
 
-  const goLive = useCallback(async (session: LiveSession) => {
-    setLiveSession(session);
-    await AsyncStorage.setItem(STORAGE_KEYS.LIVE_SESSION, JSON.stringify(session));
-  }, []);
+  const refreshSessions = useCallback(async () => {
+    if (!assistantProfile?.id) return;
+    try {
+      const assistantSessions = await sessionApi.getByAssistant(assistantProfile.id);
+      setSessions(assistantSessions);
+    } catch (error) {
+      console.error("Failed to refresh sessions:", error);
+    }
+  }, [assistantProfile?.id]);
 
-  const goOffline = useCallback(async () => {
-    setLiveSession(null);
-    await AsyncStorage.removeItem(STORAGE_KEYS.LIVE_SESSION);
-  }, []);
+  const goLive = useCallback(
+    async (session: LiveSession) => {
+      if (!assistantProfile?.id) {
+        console.error("No assistant profile found");
+        return;
+      }
+      try {
+        const liveSessionData = await liveSessionApi.create(assistantProfile.id, session);
+        setLiveSession(liveSessionData);
+        console.log("Gone live successfully");
+      } catch (error) {
+        console.error("Failed to go live:", error);
+        throw error;
+      }
+    },
+    [assistantProfile?.id]
+  );
+
+  const goOffline = useCallback(
+    async (notes?: string) => {
+      if (!assistantProfile?.id) return;
+      try {
+        await liveSessionApi.end(assistantProfile.id, notes);
+        setLiveSession(null);
+        console.log("Gone offline successfully");
+      } catch (error) {
+        console.error("Failed to go offline:", error);
+        throw error;
+      }
+    },
+    [assistantProfile?.id]
+  );
 
   const resetApp = useCallback(async () => {
     await AsyncStorage.multiRemove([
       STORAGE_KEYS.USER_TYPE,
-      STORAGE_KEYS.ASSISTANT_PROFILE,
-      STORAGE_KEYS.PATIENT_PROFILE,
-      STORAGE_KEYS.SESSIONS,
-      STORAGE_KEYS.LIVE_SESSION,
+      STORAGE_KEYS.ASSISTANT_ID,
+      STORAGE_KEYS.PATIENT_ID,
     ]);
     setUserType(null);
     setAssistantProfile(null);
@@ -187,6 +282,7 @@ export const [AppContextProvider, useApp] = createContextHook(() => {
       savePatientProfile,
       addSession,
       updateSession,
+      refreshSessions,
       goLive,
       goOffline,
       resetApp,
@@ -203,6 +299,7 @@ export const [AppContextProvider, useApp] = createContextHook(() => {
       savePatientProfile,
       addSession,
       updateSession,
+      refreshSessions,
       goLive,
       goOffline,
       resetApp,
