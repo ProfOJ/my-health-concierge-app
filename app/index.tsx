@@ -58,7 +58,7 @@ export default function SplashScreen() {
         >
           <View style={styles.imageContainer}>
             <Image
-              source={{ uri: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&h=600&fit=crop" }}
+              source={{ uri: "https://www.shutterstock.com/image-photo/patients-waiting-queue-clinic-hall-260nw-2317158681.jpg" }}
               style={styles.illustration}
               resizeMode="contain"
             />
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     maxWidth: 280,
     maxHeight: 280,
     aspectRatio: 1,
-    borderRadius: 140,
+    borderRadius: 10,
   },
   decorTop1: {
     position: "absolute",
