@@ -2,10 +2,11 @@ import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import colors from "@/constants/colors";
 import { HEALTHCARE_ROLES } from "@/constants/assistants";
+import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { ChevronDown, Upload } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Image,
   Modal,
@@ -18,12 +19,19 @@ import {
 
 export default function KYCScreen() {
   const router = useRouter();
+  const { onboardingData, updateOnboardingData } = useOnboarding();
   const [formData, setFormData] = useState({
     role: "",
     idPhoto: "",
     otherDetails: "",
   });
   const [showRolePicker, setShowRolePicker] = useState(false);
+
+  useEffect(() => {
+    if (onboardingData.role) setFormData(prev => ({ ...prev, role: onboardingData.role || "" }));
+    if (onboardingData.idPhoto) setFormData(prev => ({ ...prev, idPhoto: onboardingData.idPhoto || "" }));
+    if (onboardingData.otherDetails) setFormData(prev => ({ ...prev, otherDetails: onboardingData.otherDetails || "" }));
+  }, []);
 
   const pickIdPhoto = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -37,7 +45,12 @@ export default function KYCScreen() {
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
+    await updateOnboardingData({
+      role: formData.role,
+      idPhoto: formData.idPhoto,
+      otherDetails: formData.otherDetails,
+    });
     router.push("/assistant/onboarding/services");
   };
 

@@ -1,14 +1,22 @@
 import { Button } from "@/components/Button";
 import colors from "@/constants/colors";
 import { HEALTHCARE_SERVICES } from "@/constants/assistants";
+import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useRouter } from "expo-router";
 import { Check } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function ServicesScreen() {
   const router = useRouter();
+  const { onboardingData, updateOnboardingData } = useOnboarding();
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (onboardingData.services && onboardingData.services.length > 0) {
+      setSelectedServices(onboardingData.services);
+    }
+  }, []);
 
   const toggleService = (service: string) => {
     if (selectedServices.includes(service)) {
@@ -18,7 +26,10 @@ export default function ServicesScreen() {
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
+    await updateOnboardingData({
+      services: selectedServices,
+    });
     router.push("/assistant/onboarding/pricing");
   };
 

@@ -1,14 +1,16 @@
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import colors from "@/constants/colors";
+import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Camera } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function GeneralInfoScreen() {
   const router = useRouter();
+  const { onboardingData, updateOnboardingData } = useOnboarding();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -16,6 +18,14 @@ export default function GeneralInfoScreen() {
     address: "",
     photo: "",
   });
+
+  useEffect(() => {
+    if (onboardingData.name) setFormData(prev => ({ ...prev, name: onboardingData.name || "" }));
+    if (onboardingData.email) setFormData(prev => ({ ...prev, email: onboardingData.email || "" }));
+    if (onboardingData.phone) setFormData(prev => ({ ...prev, phone: onboardingData.phone || "" }));
+    if (onboardingData.address) setFormData(prev => ({ ...prev, address: onboardingData.address || "" }));
+    if (onboardingData.photo) setFormData(prev => ({ ...prev, photo: onboardingData.photo || "" }));
+  }, []);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -30,7 +40,14 @@ export default function GeneralInfoScreen() {
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
+    await updateOnboardingData({
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      address: formData.address,
+      photo: formData.photo,
+    });
     router.push("/assistant/onboarding/kyc");
   };
 

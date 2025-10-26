@@ -1,22 +1,58 @@
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import colors from "@/constants/colors";
+import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useRouter } from "expo-router";
 import { Check } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 type PricingModel = "fixed" | "hourly" | "bespoke";
 
 export default function PricingScreen() {
   const router = useRouter();
+  const { onboardingData, updateOnboardingData } = useOnboarding();
   const [pricingModel, setPricingModel] = useState<PricingModel | null>(null);
   const [fixedRate, setFixedRate] = useState("");
   const [hourlyRate, setHourlyRate] = useState("");
   const [minRate, setMinRate] = useState("");
   const [maxRate, setMaxRate] = useState("");
 
-  const handleContinue = () => {
+  useEffect(() => {
+    if (onboardingData.pricingModel) {
+      setPricingModel(onboardingData.pricingModel);
+      if (onboardingData.pricingModel === "fixed" && onboardingData.rate) {
+        setFixedRate(onboardingData.rate.toString());
+      } else if (onboardingData.pricingModel === "hourly" && onboardingData.rate) {
+        setHourlyRate(onboardingData.rate.toString());
+      } else if (onboardingData.pricingModel === "bespoke" && onboardingData.rateRange) {
+        setMinRate(onboardingData.rateRange.min.toString());
+        setMaxRate(onboardingData.rateRange.max.toString());
+      }
+    }
+  }, []);
+
+  const handleContinue = async () => {
+    const pricingData: {
+      pricingModel: PricingModel;
+      rate?: number;
+      rateRange?: { min: number; max: number };
+    } = {
+      pricingModel: pricingModel!,
+    };
+
+    if (pricingModel === "fixed") {
+      pricingData.rate = parseFloat(fixedRate);
+    } else if (pricingModel === "hourly") {
+      pricingData.rate = parseFloat(hourlyRate);
+    } else if (pricingModel === "bespoke") {
+      pricingData.rateRange = {
+        min: parseFloat(minRate),
+        max: parseFloat(maxRate),
+      };
+    }
+
+    await updateOnboardingData(pricingData);
     router.push("/assistant/onboarding/review");
   };
 

@@ -1,33 +1,66 @@
 import { Button } from "@/components/Button";
 import colors from "@/constants/colors";
 import { useApp } from "@/contexts/AppContext";
+import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useRouter } from "expo-router";
 import { CheckCircle } from "lucide-react-native";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { ScrollView, StyleSheet, Text, View, Alert } from "react-native";
 
 export default function ReviewScreen() {
   const { saveAssistantProfile } = useApp();
+  const { onboardingData, clearOnboardingData } = useOnboarding();
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    const mockProfile = {
-      id: "",
-      name: "John Doe",
-      email: "john@example.com",
-      phone: "+233 XX XXX XXXX",
-      address: "Accra, Ghana",
-      photo: "",
-      role: "Registered Nurse",
-      idPhoto: "",
-      otherDetails: "",
-      services: ["General Care", "Patient Escort"],
-      pricingModel: "hourly" as const,
-      rate: 50,
-      verificationStatus: "pending" as const,
-    };
+    try {
+      setIsSubmitting(true);
+      console.log("📝 Submitting onboarding data:", onboardingData);
 
-    await saveAssistantProfile(mockProfile);
-    router.replace("/assistant/dashboard");
+      if (!onboardingData.name || !onboardingData.email || !onboardingData.phone ||
+          !onboardingData.address || !onboardingData.photo || !onboardingData.role ||
+          !onboardingData.idPhoto || !onboardingData.services || onboardingData.services.length === 0 ||
+          !onboardingData.pricingModel) {
+        Alert.alert("Incomplete Data", "Please complete all onboarding steps.");
+        console.error("❌ Incomplete onboarding data:", onboardingData);
+        setIsSubmitting(false);
+        return;
+      }
+
+      const profileData = {
+        id: "",
+        name: onboardingData.name,
+        email: onboardingData.email,
+        phone: onboardingData.phone,
+        address: onboardingData.address,
+        photo: onboardingData.photo,
+        role: onboardingData.role,
+        idPhoto: onboardingData.idPhoto,
+        otherDetails: onboardingData.otherDetails || "",
+        services: onboardingData.services,
+        pricingModel: onboardingData.pricingModel,
+        rate: onboardingData.rate,
+        rateRange: onboardingData.rateRange,
+        verificationStatus: "pending" as const,
+      };
+
+      console.log("💾 Saving profile to database:", profileData);
+      await saveAssistantProfile(profileData);
+      console.log("✅ Profile saved successfully");
+
+      await clearOnboardingData();
+      console.log("🗑️ Onboarding data cleared");
+
+      router.replace("/assistant/dashboard");
+    } catch (error) {
+      console.error("❌ Failed to submit onboarding:", error);
+      Alert.alert(
+        "Error",
+        "Failed to save your profile. Please try again.\n" + (error instanceof Error ? error.message : String(error))
+      );
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -78,7 +111,7 @@ export default function ReviewScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Button title="Go to Dashboard" onPress={handleSubmit} />
+        <Button title="Go to Dashboard" onPress={handleSubmit} disabled={isSubmitting} />
       </View>
     </View>
   );
