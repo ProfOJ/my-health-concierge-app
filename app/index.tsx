@@ -31,7 +31,7 @@ export default function SplashScreen() {
     if (!userType) {
       router.replace("/user-type");
     } else if (userType === "assistant") {
-      if (assistantProfile?.verified) {
+      if (assistantProfile?.verificationStatus === "verified") {
         router.replace("/assistant/dashboard");
       } else {
         router.replace("/assistant/onboarding/general");
