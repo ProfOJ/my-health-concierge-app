@@ -60,9 +60,9 @@ const styles = StyleSheet.create({
     minHeight: 56,
   },
   multilineInput: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 3,
-    borderColor: colors.text.primary,
+    backgroundColor: colors.background.primary,
+    borderWidth: 2,
+    borderColor: colors.border.medium,
     borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 18,
