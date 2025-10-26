@@ -4,10 +4,11 @@ import type { Hospital } from "@/constants/hospitals";
 import { useApp } from "@/contexts/AppContext";
 import { hospitalApi } from "@/lib/api";
 import { useRouter } from "expo-router";
-import { Calendar, ChevronDown, MapPin, X } from "lucide-react-native";
-import { useState, useEffect } from "react";
+import { Calendar, ChevronDown, Clock, MapPin, X } from "lucide-react-native";
+import { useState, useEffect, type ReactNode } from "react";
 import {
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,6 +17,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 
 export default function GoLiveScreen() {
   const { goLive } = useApp();
@@ -24,12 +26,16 @@ export default function GoLiveScreen() {
   const [selectedHospital, setSelectedHospital] = useState<string>("");
   const [hospitalSearch, setHospitalSearch] = useState("");
   const [showHospitalPicker, setShowHospitalPicker] = useState(false);
-  const [fromDate, setFromDate] = useState("");
-  const [fromTime, setFromTime] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [toTime, setToTime] = useState("");
+  const [fromDate, setFromDate] = useState<Date>(new Date());
+  const [fromTime, setFromTime] = useState<Date>(new Date());
+  const [toDate, setToDate] = useState<Date>(new Date());
+  const [toTime, setToTime] = useState<Date>(new Date());
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
-  const [isLoadingHospitals, setIsLoadingHospitals] = useState(true);
+  
+  const [showFromDatePicker, setShowFromDatePicker] = useState(false);
+  const [showFromTimePicker, setShowFromTimePicker] = useState(false);
+  const [showToDatePicker, setShowToDatePicker] = useState(false);
+  const [showToTimePicker, setShowToTimePicker] = useState(false);
 
   useEffect(() => {
     const loadHospitals = async () => {
@@ -38,8 +44,6 @@ export default function GoLiveScreen() {
         setHospitals(data);
       } catch (error) {
         console.error("Failed to load hospitals:", error);
-      } finally {
-        setIsLoadingHospitals(false);
       }
     };
     loadHospitals();
@@ -57,6 +61,55 @@ export default function GoLiveScreen() {
     setHospitalSearch("");
   };
 
+  const formatDate = (date: Date): string => {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  const formatTime = (date: Date): string => {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  const onFromDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowFromDatePicker(false);
+    }
+    if (selectedDate) {
+      setFromDate(selectedDate);
+    }
+  };
+
+  const onFromTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowFromTimePicker(false);
+    }
+    if (selectedDate) {
+      setFromTime(selectedDate);
+    }
+  };
+
+  const onToDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowToDatePicker(false);
+    }
+    if (selectedDate) {
+      setToDate(selectedDate);
+    }
+  };
+
+  const onToTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowToTimePicker(false);
+    }
+    if (selectedDate) {
+      setToTime(selectedDate);
+    }
+  };
+
   const handleStartReceiving = async () => {
     const selectedHospitalData = hospitals.find((h) => h.id === selectedHospital);
     if (!selectedHospitalData) return;
@@ -64,23 +117,89 @@ export default function GoLiveScreen() {
     await goLive({
       hospitalId: selectedHospital,
       hospitalName: selectedHospitalData.name,
-      fromDate,
-      fromTime,
-      toDate,
-      toTime,
+      fromDate: formatDate(fromDate),
+      fromTime: formatTime(fromTime),
+      toDate: formatDate(toDate),
+      toTime: formatTime(toTime),
       startedAt: new Date().toISOString(),
     });
 
     console.log("Starting to receive requests", {
       hospital: selectedHospital,
-      from: `${fromDate} ${fromTime}`,
-      to: `${toDate} ${toTime}`,
+      from: `${formatDate(fromDate)} ${formatTime(fromTime)}`,
+      to: `${formatDate(toDate)} ${formatTime(toTime)}`,
     });
     router.back();
   };
 
-  const isFormValid =
-    selectedHospital && fromDate && fromTime && toDate && toTime;
+  const isFormValid = selectedHospital;
+
+  const renderDateTimePicker = (
+    mode: 'date' | 'time',
+    value: Date,
+    onChange: (event: DateTimePickerEvent, date?: Date) => void,
+    show: boolean,
+    setShow: (show: boolean) => void,
+    placeholder: string,
+    icon?: ReactNode
+  ) => {
+    if (Platform.OS === 'web') {
+      return (
+        <View style={styles.dateTimeInput}>
+          {icon && <View style={styles.inputIcon}>{icon}</View>}
+          <input
+            type={mode}
+            value={mode === 'date' ? value.toISOString().split('T')[0] : `${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`}
+            onChange={(e) => {
+              if (mode === 'date') {
+                const newDate = new Date(e.target.value);
+                if (!isNaN(newDate.getTime())) {
+                  onChange({ type: 'set', nativeEvent: {} } as DateTimePickerEvent, newDate);
+                }
+              } else {
+                const [hours, minutes] = e.target.value.split(':');
+                const newTime = new Date(value);
+                newTime.setHours(parseInt(hours), parseInt(minutes));
+                onChange({ type: 'set', nativeEvent: {} } as DateTimePickerEvent, newTime);
+              }
+            }}
+            style={{
+              flex: 1,
+              border: 'none',
+              outline: 'none',
+              backgroundColor: 'transparent',
+              fontSize: 16,
+              color: colors.text.primary,
+              fontFamily: 'inherit',
+            }}
+          />
+        </View>
+      );
+    }
+
+    return (
+      <>
+        <Pressable
+          style={styles.dateTimeInput}
+          onPress={() => setShow(true)}
+        >
+          {icon && <View style={styles.inputIcon}>{icon}</View>}
+          <Text style={styles.dateTimeText}>
+            {mode === 'date' ? formatDate(value) : formatTime(value)}
+          </Text>
+        </Pressable>
+        {show && (
+          <DateTimePicker
+            value={value}
+            mode={mode}
+            is24Hour={true}
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={onChange}
+          />
+        )}
+      </>
+    );
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -137,54 +256,48 @@ export default function GoLiveScreen() {
         <View style={styles.section}>
           <Text style={styles.label}>From</Text>
           <View style={styles.dateTimeRow}>
-            <View style={styles.dateTimeInput}>
-              <View style={styles.inputIcon}>
-                <Calendar size={18} color={colors.text.secondary} />
-              </View>
-              <TextInput
-                style={styles.input}
-                value={fromDate}
-                onChangeText={setFromDate}
-                placeholder="DD/MM/YYYY"
-                placeholderTextColor={colors.text.light}
-              />
-            </View>
-            <View style={styles.dateTimeInput}>
-              <TextInput
-                style={styles.input}
-                value={fromTime}
-                onChangeText={setFromTime}
-                placeholder="HH:MM"
-                placeholderTextColor={colors.text.light}
-              />
-            </View>
+            {renderDateTimePicker(
+              'date',
+              fromDate,
+              onFromDateChange,
+              showFromDatePicker,
+              setShowFromDatePicker,
+              'DD/MM/YYYY',
+              <Calendar size={18} color={colors.text.secondary} />
+            )}
+            {renderDateTimePicker(
+              'time',
+              fromTime,
+              onFromTimeChange,
+              showFromTimePicker,
+              setShowFromTimePicker,
+              'HH:MM',
+              <Clock size={18} color={colors.text.secondary} />
+            )}
           </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.label}>To</Text>
           <View style={styles.dateTimeRow}>
-            <View style={styles.dateTimeInput}>
-              <View style={styles.inputIcon}>
-                <Calendar size={18} color={colors.text.secondary} />
-              </View>
-              <TextInput
-                style={styles.input}
-                value={toDate}
-                onChangeText={setToDate}
-                placeholder="DD/MM/YYYY"
-                placeholderTextColor={colors.text.light}
-              />
-            </View>
-            <View style={styles.dateTimeInput}>
-              <TextInput
-                style={styles.input}
-                value={toTime}
-                onChangeText={setToTime}
-                placeholder="HH:MM"
-                placeholderTextColor={colors.text.light}
-              />
-            </View>
+            {renderDateTimePicker(
+              'date',
+              toDate,
+              onToDateChange,
+              showToDatePicker,
+              setShowToDatePicker,
+              'DD/MM/YYYY',
+              <Calendar size={18} color={colors.text.secondary} />
+            )}
+            {renderDateTimePicker(
+              'time',
+              toTime,
+              onToTimeChange,
+              showToTimePicker,
+              setShowToTimePicker,
+              'HH:MM',
+              <Clock size={18} color={colors.text.secondary} />
+            )}
           </View>
         </View>
 
@@ -388,6 +501,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text.primary,
     paddingVertical: 0,
+  },
+  dateTimeText: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.text.primary,
   },
   infoCard: {
     backgroundColor: colors.card.mint,
