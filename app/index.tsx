@@ -58,7 +58,7 @@ export default function SplashScreen() {
         >
           <View style={styles.imageContainer}>
             <Image
-              source={{ uri: "https://www.shutterstock.com/image-photo/patients-waiting-queue-clinic-hall-260nw-2317158681.jpg" }}
+              source={{ uri: "https://liberrex.com/wp-content/uploads/2025/04/freepik__the-style-is-candid-image-photography-with-natural__34116-png.webp" }}
               style={styles.illustration}
               resizeMode="contain"
             />
