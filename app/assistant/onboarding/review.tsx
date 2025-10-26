@@ -11,7 +11,7 @@ export default function ReviewScreen() {
 
   const handleSubmit = async () => {
     const mockProfile = {
-      id: Date.now().toString(),
+      id: "",
       name: "John Doe",
       email: "john@example.com",
       phone: "+233 XX XXX XXXX",

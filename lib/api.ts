@@ -65,6 +65,8 @@ export const assistantApi = {
       rate_min: profile.rateRange?.min || null,
       rate_max: profile.rateRange?.max || null,
       verification_status: profile.verificationStatus,
+    }, {
+      headers: { Prefer: 'return=representation' },
     });
     return this.mapToAssistantProfile(data[0]);
   },
@@ -149,6 +151,8 @@ export const patientApi = {
       card_photo: profile.cardPhoto || null,
       card_details: profile.cardDetails || null,
       id_photo: profile.idPhoto || null,
+    }, {
+      headers: { Prefer: 'return=representation' },
     });
     return this.mapToPatientProfile(data[0]);
   },
@@ -221,6 +225,8 @@ export const sessionApi = {
       invoice_amount: session.invoice?.amount || null,
       invoice_review: session.invoice?.review || null,
       invoice_paid_at: session.invoice?.paidAt || null,
+    }, {
+      headers: { Prefer: 'return=representation' },
     });
     return this.mapToSessionRequest(data[0]);
   },
@@ -317,6 +323,8 @@ export const liveSessionApi = {
       to_date: session.toDate,
       to_time: session.toTime,
       started_at: new Date().toISOString(),
+    }, {
+      headers: { Prefer: 'return=representation' },
     });
     return this.mapToLiveSession(data[0]);
   },
