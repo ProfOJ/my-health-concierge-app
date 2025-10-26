@@ -46,12 +46,14 @@ export default function HospitalSelectScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <ArrowLeft size={24} color={colors.text.primary} />
-        </Pressable>
+        <View style={styles.headerTop}>
+          <Pressable
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <ArrowLeft size={24} color={colors.text.primary} />
+          </Pressable>
+        </View>
         <Text style={styles.title}>Which hospital are you headed to?</Text>
         <View style={styles.searchContainer}>
           <Search size={20} color={colors.text.light} style={styles.searchIcon} />
@@ -105,16 +107,20 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    paddingVertical: 24,
+    paddingVertical: 16,
     backgroundColor: colors.background.cream,
     borderBottomWidth: 0,
+  },
+  headerTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
   },
   backButton: {
     width: 40,
     height: 40,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
   },
   title: {
     fontSize: 26,

@@ -14,7 +14,7 @@ export default function PatientLayout() {
         },
       }}
     >
-      <Stack.Screen name="hospital-select" options={{ title: "Select Hospital" }} />
+      <Stack.Screen name="hospital-select" options={{ headerShown: false }} />
       <Stack.Screen name="assistant-select" options={{ title: "Select Assistant" }} />
       <Stack.Screen name="personal-info" options={{ title: "Your Information" }} />
       <Stack.Screen name="session" options={{ title: "Session Details" }} />
