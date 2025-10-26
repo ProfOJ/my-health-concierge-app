@@ -1,10 +1,11 @@
 import { Button } from "@/components/Button";
 import colors from "@/constants/colors";
-import { HOSPITALS } from "@/constants/hospitals";
+import type { Hospital } from "@/constants/hospitals";
 import { useApp } from "@/contexts/AppContext";
+import { hospitalApi } from "@/lib/api";
 import { useRouter } from "expo-router";
 import { Calendar, ChevronDown, MapPin, X } from "lucide-react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Modal,
   Pressable,
@@ -27,12 +28,28 @@ export default function GoLiveScreen() {
   const [fromTime, setFromTime] = useState("");
   const [toDate, setToDate] = useState("");
   const [toTime, setToTime] = useState("");
+  const [hospitals, setHospitals] = useState<Hospital[]>([]);
+  const [isLoadingHospitals, setIsLoadingHospitals] = useState(true);
 
-  const filteredHospitals = HOSPITALS.filter((hospital) =>
+  useEffect(() => {
+    const loadHospitals = async () => {
+      try {
+        const data = await hospitalApi.getAll();
+        setHospitals(data);
+      } catch (error) {
+        console.error("Failed to load hospitals:", error);
+      } finally {
+        setIsLoadingHospitals(false);
+      }
+    };
+    loadHospitals();
+  }, []);
+
+  const filteredHospitals = hospitals.filter((hospital) =>
     hospital.name.toLowerCase().includes(hospitalSearch.toLowerCase())
   );
 
-  const selectedHospitalData = HOSPITALS.find((h) => h.id === selectedHospital);
+  const selectedHospitalData = hospitals.find((h) => h.id === selectedHospital);
 
   const handleSelectHospital = (hospitalId: string) => {
     setSelectedHospital(hospitalId);
@@ -41,7 +58,7 @@ export default function GoLiveScreen() {
   };
 
   const handleStartReceiving = async () => {
-    const selectedHospitalData = HOSPITALS.find((h) => h.id === selectedHospital);
+    const selectedHospitalData = hospitals.find((h) => h.id === selectedHospital);
     if (!selectedHospitalData) return;
 
     await goLive({

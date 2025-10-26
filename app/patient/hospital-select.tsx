@@ -1,8 +1,9 @@
 import colors from "@/constants/colors";
-import { HOSPITALS, Hospital } from "@/constants/hospitals";
+import type { Hospital } from "@/constants/hospitals";
+import { hospitalApi } from "@/lib/api";
 import { useRouter } from "expo-router";
 import { MapPin, Search, ChevronRight } from "lucide-react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Pressable,
   ScrollView,
@@ -17,8 +18,24 @@ export default function HospitalSelectScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState("");
+  const [hospitals, setHospitals] = useState<Hospital[]>([]);
+  const [isLoadingHospitals, setIsLoadingHospitals] = useState(true);
 
-  const filteredHospitals = HOSPITALS.filter((hospital) =>
+  useEffect(() => {
+    const loadHospitals = async () => {
+      try {
+        const data = await hospitalApi.getAll();
+        setHospitals(data);
+      } catch (error) {
+        console.error("Failed to load hospitals:", error);
+      } finally {
+        setIsLoadingHospitals(false);
+      }
+    };
+    loadHospitals();
+  }, []);
+
+  const filteredHospitals = hospitals.filter((hospital) =>
     hospital.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -61,9 +78,11 @@ export default function HospitalSelectScreen() {
             <View style={styles.hospitalInfo}>
               <Text style={styles.hospitalName}>{hospital.name}</Text>
               <Text style={styles.hospitalLocation}>{hospital.location}</Text>
-              <Text style={styles.assistantsAvailable}>
-                {hospital.availableAssistants} assistant{hospital.availableAssistants !== 1 ? "s" : ""} available now
-              </Text>
+              {hospital.availableAssistants !== undefined && (
+                <Text style={styles.assistantsAvailable}>
+                  {hospital.availableAssistants} assistant{hospital.availableAssistants !== 1 ? "s" : ""} available now
+                </Text>
+              )}
             </View>
             <ChevronRight size={24} color={colors.text.light} />
           </Pressable>
