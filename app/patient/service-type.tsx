@@ -13,6 +13,8 @@ export default function ServiceTypeScreen() {
   const handleSelectService = (serviceType: ServiceType) => {
     if (serviceType === "home-care") {
       router.push("/patient/home-care");
+    } else if (serviceType === "health-supplies") {
+      router.push("/patient/health-supplies");
     } else {
       router.push("/patient/hospital-select");
     }
