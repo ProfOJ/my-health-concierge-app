@@ -200,6 +200,9 @@ export default function HealthSuppliesScreen() {
       };
 
       console.log("📋 Request data:", JSON.stringify(requestData, null, 2));
+      if (hasPrescription) {
+        console.log("📋 Prescription images:", prescriptionImages.length, "images");
+      }
 
       const { supabase } = await import("@/lib/supabase");
       const { data, error } = await supabase.rpc(
@@ -212,15 +215,17 @@ export default function HealthSuppliesScreen() {
 
       if (error) {
         console.error("❌ Error submitting health supplies request:", error);
+        console.error("Error details:", JSON.stringify(error, null, 2));
         alert(`Failed to submit request: ${error.message}`);
         return;
       }
 
-      console.log("✅ Health supplies request created successfully:", data);
-      router.push("/patient/request-success");
-    } catch (error) {
+      console.log("✅ Health supplies request created successfully. ID:", data);
+      router.replace("/patient/request-success");
+    } catch (error: any) {
       console.error("❌ Unexpected error:", error);
-      alert("An unexpected error occurred. Please try again.");
+      console.error("Error stack:", error?.stack);
+      alert(`An unexpected error occurred: ${error?.message || "Please try again"}`);
     } finally {
       setIsSubmitting(false);
     }

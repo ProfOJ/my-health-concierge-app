@@ -163,15 +163,17 @@ export default function HomeCareScreen() {
 
       if (error) {
         console.error("❌ Error submitting home care request:", error);
+        console.error("Error details:", JSON.stringify(error, null, 2));
         alert(`Failed to submit request: ${error.message}`);
         return;
       }
 
-      console.log("✅ Home care request created successfully:", data);
-      router.push("/patient/request-success");
-    } catch (error) {
+      console.log("✅ Home care request created successfully. ID:", data);
+      router.replace("/patient/request-success");
+    } catch (error: any) {
       console.error("❌ Unexpected error:", error);
-      alert("An unexpected error occurred. Please try again.");
+      console.error("Error stack:", error?.stack);
+      alert(`An unexpected error occurred: ${error?.message || "Please try again"}`);
     } finally {
       setIsSubmitting(false);
     }
