@@ -4,6 +4,7 @@ import colors from "@/constants/colors";
 import { useRouter } from "expo-router";
 import { MapPin, ArrowLeft, ChevronDown, X } from "lucide-react-native";
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
 import {
   Pressable,
   ScrollView,
@@ -43,6 +44,11 @@ export default function HomeCareScreen() {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [showServicesDropdown, setShowServicesDropdown] = useState(false);
   const [serviceSearchQuery, setServiceSearchQuery] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requesterName, setRequesterName] = useState("");
+  const [requesterContact, setRequesterContact] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
 
   const handleGetCurrentLocation = async () => {
     setIsLoadingLocation(true);
@@ -54,9 +60,11 @@ export default function HomeCareScreen() {
       }
 
       const location = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = location.coords;
+      const { latitude: lat, longitude: lng } = location.coords;
       
-      const formattedAddress = `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`;
+      setLatitude(lat);
+      setLongitude(lng);
+      const formattedAddress = `Lat: ${lat.toFixed(6)}, Long: ${lng.toFixed(6)}`;
       setAddress(formattedAddress);
     } catch (error) {
       console.error("Error getting location:", error);
@@ -111,28 +119,63 @@ export default function HomeCareScreen() {
       return false;
     }
 
+    if (!requesterName || !requesterContact) {
+      return false;
+    }
+
     return true;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!isFormValid()) {
       alert("Please fill in all required fields");
       return;
     }
 
-    console.log({
-      address,
-      isPatient,
-      gender,
-      age,
-      selectedServices,
-      isAtLocation,
-      contactPerson,
-      patientName,
-    });
+    setIsSubmitting(true);
 
-    alert("Request submitted successfully!");
-    router.push("/patient/service-type");
+    try {
+      console.log("📤 Submitting home care request...");
+
+      const requestData = {
+        address,
+        latitude,
+        longitude,
+        isPatient,
+        gender: isPatient === false ? gender : null,
+        age: isPatient === false ? age : null,
+        services: selectedServices,
+        isAtLocation,
+        contactPerson: isAtLocation === false ? contactPerson : null,
+        patientName: isAtLocation === false ? patientName : null,
+        requesterName,
+        requesterContact,
+      };
+
+      console.log("📋 Request data:", JSON.stringify(requestData, null, 2));
+
+      const { data, error } = await supabase.rpc(
+        "create_home_care_request",
+        {
+          p_request_data: requestData,
+        }
+      );
+
+      if (error) {
+        console.error("❌ Error submitting home care request:", error);
+        alert(`Failed to submit request: ${error.message}`);
+        return;
+      }
+
+      console.log("✅ Home care request created successfully:", data);
+      alert("Request submitted successfully!");
+      router.push("/patient/service-type");
+    } catch (error) {
+      console.error("❌ Unexpected error:", error);
+      alert("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -430,11 +473,30 @@ export default function HomeCareScreen() {
           </>
         )}
 
+        <View style={styles.section}>
+          <Input
+            label="Your name"
+            placeholder="Enter your name"
+            value={requesterName}
+            onChangeText={setRequesterName}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Input
+            label="Your contact number"
+            placeholder="Enter your phone number"
+            keyboardType="phone-pad"
+            value={requesterContact}
+            onChangeText={setRequesterContact}
+          />
+        </View>
+
         <View style={styles.buttonContainer}>
           <Button
-            title="Request Now"
+            title={isSubmitting ? "Submitting..." : "Request Now"}
             onPress={handleSubmit}
-            disabled={!isFormValid()}
+            disabled={!isFormValid() || isSubmitting}
           />
         </View>
       </ScrollView>
