@@ -11,7 +11,11 @@ export default function ServiceTypeScreen() {
   const insets = useSafeAreaInsets();
 
   const handleSelectService = (serviceType: ServiceType) => {
-    router.push("/patient/hospital-select");
+    if (serviceType === "home-care") {
+      router.push("/patient/home-care");
+    } else {
+      router.push("/patient/hospital-select");
+    }
   };
 
   return (
