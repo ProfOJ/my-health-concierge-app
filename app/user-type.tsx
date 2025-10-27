@@ -17,7 +17,7 @@ export default function UserTypeScreen() {
 
   const handleSelectPatient = async () => {
     await selectUserType("patient");
-    router.replace("/patient/hospital-select");
+    router.replace("/patient/service-type");
   };
 
   return (
