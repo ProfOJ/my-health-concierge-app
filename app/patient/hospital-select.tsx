@@ -90,7 +90,7 @@ export default function HospitalSelectScreen() {
         <View style={styles.headerTop}>
           <Pressable
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => router.push("/user-type")}
           >
             <ArrowLeft size={24} color={colors.text.primary} />
           </Pressable>

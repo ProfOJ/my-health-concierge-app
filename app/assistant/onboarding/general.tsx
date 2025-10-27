@@ -2,9 +2,9 @@ import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import colors from "@/constants/colors";
 import { useOnboarding } from "@/contexts/OnboardingContext";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { Camera } from "lucide-react-native";
+import { ArrowLeft, Camera } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -56,6 +56,18 @@ export default function GeneralInfoScreen() {
 
   return (
     <View style={styles.container}>
+      <Stack.Screen
+        options={{
+          headerLeft: () => (
+            <Pressable
+              onPress={() => router.push("/user-type")}
+              style={{ marginLeft: -8 }}
+            >
+              <ArrowLeft size={24} color={colors.text.primary} />
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
