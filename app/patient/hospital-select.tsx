@@ -67,7 +67,10 @@ export default function HospitalSelectScreen() {
   useEffect(() => {
     const loadHospitals = async () => {
       try {
+        console.log("Loading hospitals from database...");
         const data = await hospitalApi.getAll();
+        console.log("Loaded", data.length, "hospitals");
+        console.log("First hospital:", JSON.stringify(data[0], null, 2));
         setHospitals(data);
       } catch (error) {
         console.error("Failed to load hospitals:", error);
@@ -83,6 +86,8 @@ export default function HospitalSelectScreen() {
   );
 
   const handleSelectHospital = (hospital: Hospital) => {
+    console.log("Selected hospital:", JSON.stringify(hospital, null, 2));
+    console.log("Hospital ID:", hospital.id, "Type:", typeof hospital.id);
     setHospital(hospital);
     router.push("/patient/assistant-select");
   };

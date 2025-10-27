@@ -30,6 +30,18 @@ export default function PersonalInfoScreen() {
       return;
     }
 
+    console.log("Hospital data:", JSON.stringify(hospital, null, 2));
+    console.log("Hospital ID:", hospital.id);
+    console.log("Hospital ID type:", typeof hospital.id);
+
+    if (!hospital.id || typeof hospital.id !== 'string' || hospital.id.length < 30) {
+      Alert.alert(
+        "Error", 
+        "Invalid hospital selection. Please go back and select a hospital again."
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const { data: patientData, error: patientError } = await supabase
@@ -58,25 +70,29 @@ export default function PersonalInfoScreen() {
       const estimatedArrival = new Date();
       estimatedArrival.setMinutes(estimatedArrival.getMinutes() + 30);
 
+      const sessionPayload = {
+        patient_id: patientData.id,
+        patient_name: formData.name,
+        patient_gender: "Not specified",
+        patient_age_range: "Not specified",
+        hospital_id: hospital.id,
+        hospital_name: hospital.name,
+        assistant_id: assistantId || null,
+        requester_name: formData.name,
+        is_requester_patient: formData.isPatient,
+        estimated_arrival: estimatedArrival.toISOString(),
+        location: formData.location,
+        has_insurance: formData.hasInsurance,
+        insurance_provider: formData.hasInsurance ? formData.insuranceProvider : null,
+        has_card: formData.hasCard,
+        status: "pending" as const,
+      };
+
+      console.log("Hospital session payload:", JSON.stringify(sessionPayload, null, 2));
+
       const { data: sessionData, error: sessionError } = await supabase
         .from("hospital_sessions")
-        .insert({
-          patient_id: patientData.id,
-          patient_name: formData.name,
-          patient_gender: "Not specified",
-          patient_age_range: "Not specified",
-          hospital_id: hospital.id,
-          hospital_name: hospital.name,
-          assistant_id: assistantId || null,
-          requester_name: formData.name,
-          is_requester_patient: formData.isPatient,
-          estimated_arrival: estimatedArrival.toISOString(),
-          location: formData.location,
-          has_insurance: formData.hasInsurance,
-          insurance_provider: formData.hasInsurance ? formData.insuranceProvider : null,
-          has_card: formData.hasCard,
-          status: "pending",
-        })
+        .insert(sessionPayload)
         .select()
         .single();
 
