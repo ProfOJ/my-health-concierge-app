@@ -21,6 +21,7 @@ export default function PatientLayout() {
       <Stack.Screen name="assistant-select" options={{ title: "Select Assistant" }} />
       <Stack.Screen name="personal-info" options={{ title: "Your Information" }} />
       <Stack.Screen name="session" options={{ title: "Session Details" }} />
+      <Stack.Screen name="request-success" options={{ headerShown: false }} />
     </Stack>
   );
 }

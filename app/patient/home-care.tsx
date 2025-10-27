@@ -168,8 +168,7 @@ export default function HomeCareScreen() {
       }
 
       console.log("✅ Home care request created successfully:", data);
-      alert("Request submitted successfully!");
-      router.push("/patient/service-type");
+      router.push("/patient/request-success");
     } catch (error) {
       console.error("❌ Unexpected error:", error);
       alert("An unexpected error occurred. Please try again.");

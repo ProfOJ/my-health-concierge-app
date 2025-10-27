@@ -180,8 +180,7 @@ export default function HealthSuppliesScreen() {
       recipientAge,
     });
 
-    alert("Health supplies request submitted successfully!");
-    router.push("/patient/service-type");
+    router.push("/patient/request-success");
   };
 
   return (
