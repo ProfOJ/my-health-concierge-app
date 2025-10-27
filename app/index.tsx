@@ -1,7 +1,7 @@
 import { useApp } from "@/contexts/AppContext";
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
-import { Animated, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Animated, Image, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -72,6 +72,12 @@ export default function SplashScreen() {
             <Text style={styles.subtitle}>
               Find a personal hospital assistant to simplify {"\n"} your experience at any hospital.
             </Text>
+            <TouchableOpacity
+              onPress={() => Linking.openURL("https://wa.me/+233577760734?text=Concierge")}
+              style={styles.whatsappLink}
+            >
+              <Text style={styles.whatsappText}>Continue on Whatsapp</Text>
+            </TouchableOpacity>
           </View>
 
           <TouchableOpacity style={styles.button} onPress={handleStart}>
@@ -153,6 +159,15 @@ const styles = StyleSheet.create({
     fontWeight: "400" as const,
     color: "#1A1A1A",
     lineHeight: 22,
+  },
+  whatsappLink: {
+    marginTop: 12,
+  },
+  whatsappText: {
+    fontSize: 15,
+    fontWeight: "600" as const,
+    color: "#25D366",
+    textDecorationLine: "underline" as const,
   },
   button: {
     backgroundColor: "#1A1A1A",
