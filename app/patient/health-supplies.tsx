@@ -41,6 +41,11 @@ export default function HealthSuppliesScreen() {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [showUrgencyDropdown, setShowUrgencyDropdown] = useState(false);
+  const [requesterName, setRequesterName] = useState("");
+  const [requesterContact, setRequesterContact] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
 
   const handleGetCurrentLocation = async () => {
     setIsLoadingLocation(true);
@@ -52,9 +57,11 @@ export default function HealthSuppliesScreen() {
       }
 
       const location = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = location.coords;
+      const { latitude: lat, longitude: lng } = location.coords;
       
-      const formattedAddress = `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`;
+      setLatitude(lat);
+      setLongitude(lng);
+      const formattedAddress = `Lat: ${lat.toFixed(6)}, Long: ${lng.toFixed(6)}`;
       setDeliveryAddress(formattedAddress);
     } catch (error) {
       console.error("Error getting location:", error);
@@ -158,29 +165,65 @@ export default function HealthSuppliesScreen() {
       return false;
     }
 
+    if (!requesterName || !requesterContact) {
+      return false;
+    }
+
     return true;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!isFormValid()) {
       alert("Please fill in all required fields");
       return;
     }
 
-    console.log({
-      hasPrescription,
-      prescriptionImages,
-      whatDoYouNeed,
-      deliveryAddress,
-      urgency,
-      flexibleDate: urgency === "flexible" ? flexibleDate : null,
-      recipientType,
-      recipientName,
-      recipientGender,
-      recipientAge,
-    });
+    setIsSubmitting(true);
 
-    router.push("/patient/request-success");
+    try {
+      console.log("📤 Submitting health supplies request...");
+
+      const requestData = {
+        hasPrescription,
+        whatDoYouNeed: !hasPrescription ? whatDoYouNeed : null,
+        deliveryAddress,
+        deliveryLatitude: latitude,
+        deliveryLongitude: longitude,
+        urgency,
+        flexibleDate: urgency === "flexible" ? flexibleDate.toISOString() : null,
+        recipientType,
+        recipientName: recipientType === "someone-else" ? recipientName : requesterName,
+        recipientGender: recipientType === "someone-else" ? recipientGender : null,
+        recipientAge: recipientType === "someone-else" ? recipientAge : null,
+        requesterName,
+        requesterContact,
+      };
+
+      console.log("📋 Request data:", JSON.stringify(requestData, null, 2));
+
+      const { supabase } = await import("@/lib/supabase");
+      const { data, error } = await supabase.rpc(
+        "create_health_supplies_request",
+        {
+          p_request_data: requestData,
+          p_prescription_images: hasPrescription ? prescriptionImages : null,
+        }
+      );
+
+      if (error) {
+        console.error("❌ Error submitting health supplies request:", error);
+        alert(`Failed to submit request: ${error.message}`);
+        return;
+      }
+
+      console.log("✅ Health supplies request created successfully:", data);
+      router.push("/patient/request-success");
+    } catch (error) {
+      console.error("❌ Unexpected error:", error);
+      alert("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -594,11 +637,30 @@ export default function HealthSuppliesScreen() {
           </>
         )}
 
+        <View style={styles.section}>
+          <Input
+            label="Your name"
+            placeholder="Enter your name"
+            value={requesterName}
+            onChangeText={setRequesterName}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Input
+            label="Your phone number"
+            placeholder="Enter your phone number"
+            keyboardType="phone-pad"
+            value={requesterContact}
+            onChangeText={setRequesterContact}
+          />
+        </View>
+
         <View style={styles.buttonContainer}>
           <Button
-            title="Request"
+            title={isSubmitting ? "Submitting..." : "Request"}
             onPress={handleSubmit}
-            disabled={!isFormValid()}
+            disabled={!isFormValid() || isSubmitting}
           />
         </View>
       </ScrollView>

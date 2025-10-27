@@ -1,6 +1,17 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Create profiles table for users making requests
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    email TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+    UNIQUE(phone)
+);
+
 -- Create hospitals table
 CREATE TABLE IF NOT EXISTS public.hospitals (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -80,6 +91,7 @@ CREATE TABLE IF NOT EXISTS public.hospital_sessions (
 -- Create home care requests table
 CREATE TABLE IF NOT EXISTS public.home_care_requests (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    profile_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
     address TEXT NOT NULL,
     latitude NUMERIC,
     longitude NUMERIC,
@@ -106,6 +118,7 @@ CREATE TABLE IF NOT EXISTS public.home_care_requests (
 -- Create health supplies requests table
 CREATE TABLE IF NOT EXISTS public.health_supplies_requests (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    profile_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
     has_prescription BOOLEAN NOT NULL,
     what_needed TEXT,
     delivery_address TEXT NOT NULL,
@@ -163,6 +176,7 @@ CREATE TABLE IF NOT EXISTS public.session_media (
 );
 
 -- Create indexes for better query performance
+CREATE INDEX IF NOT EXISTS idx_profiles_phone ON public.profiles(phone);
 CREATE INDEX IF NOT EXISTS idx_assistants_email ON public.assistants(email);
 CREATE INDEX IF NOT EXISTS idx_assistants_verification ON public.assistants(verification_status);
 CREATE INDEX IF NOT EXISTS idx_hospital_sessions_status ON public.hospital_sessions(status);
@@ -172,9 +186,11 @@ CREATE INDEX IF NOT EXISTS idx_hospital_sessions_hospital ON public.hospital_ses
 CREATE INDEX IF NOT EXISTS idx_hospital_sessions_created ON public.hospital_sessions(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_home_care_status ON public.home_care_requests(status);
 CREATE INDEX IF NOT EXISTS idx_home_care_assistant ON public.home_care_requests(assistant_id);
+CREATE INDEX IF NOT EXISTS idx_home_care_profile ON public.home_care_requests(profile_id);
 CREATE INDEX IF NOT EXISTS idx_home_care_created ON public.home_care_requests(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_health_supplies_status ON public.health_supplies_requests(status);
 CREATE INDEX IF NOT EXISTS idx_health_supplies_urgency ON public.health_supplies_requests(urgency);
+CREATE INDEX IF NOT EXISTS idx_health_supplies_profile ON public.health_supplies_requests(profile_id);
 CREATE INDEX IF NOT EXISTS idx_health_supplies_created ON public.health_supplies_requests(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_live_sessions_assistant ON public.live_sessions(assistant_id);
 CREATE INDEX IF NOT EXISTS idx_live_sessions_active ON public.live_sessions(assistant_id, ended_at) WHERE ended_at IS NULL;
@@ -189,6 +205,12 @@ END;
 $$ language 'plpgsql';
 
 -- Create triggers for updated_at
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
+CREATE TRIGGER update_profiles_updated_at
+    BEFORE UPDATE ON public.profiles
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 DROP TRIGGER IF EXISTS update_assistants_updated_at ON public.assistants;
 CREATE TRIGGER update_assistants_updated_at
     BEFORE UPDATE ON public.assistants
@@ -202,6 +224,7 @@ CREATE TRIGGER update_patients_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Enable Row Level Security (RLS)
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.hospitals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assistants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.patients ENABLE ROW LEVEL SECURITY;
@@ -215,6 +238,11 @@ ALTER TABLE public.session_media ENABLE ROW LEVEL SECURITY;
 -- Create policies for public access (adjust based on your security requirements)
 -- For development, we'll allow all operations without authentication.
 -- In production, you should restrict these policies based on authenticated users.
+
+-- Profiles policies
+DROP POLICY IF EXISTS "Allow all access to profiles" ON public.profiles;
+CREATE POLICY "Allow all access to profiles" ON public.profiles
+    FOR ALL USING (true) WITH CHECK (true);
 
 -- Hospitals policies
 DROP POLICY IF EXISTS "Allow all access to hospitals" ON public.hospitals;
@@ -272,6 +300,37 @@ INSERT INTO public.hospitals (name, location, city) VALUES
     ('Greater Accra Regional Hospital', 'Ridge, Accra', 'Accra'),
     ('Nyaho Medical Centre', 'Airport Residential Area, Accra', 'Accra')
 ON CONFLICT DO NOTHING;
+
+-- Function to get or create profile by phone
+CREATE OR REPLACE FUNCTION get_or_create_profile(
+    p_name TEXT,
+    p_phone TEXT,
+    p_email TEXT DEFAULT NULL
+) RETURNS UUID AS $$
+DECLARE
+    v_profile_id UUID;
+BEGIN
+    -- Try to find existing profile by phone
+    SELECT id INTO v_profile_id
+    FROM public.profiles
+    WHERE phone = p_phone;
+    
+    -- If profile doesn't exist, create it
+    IF v_profile_id IS NULL THEN
+        INSERT INTO public.profiles (name, phone, email)
+        VALUES (p_name, p_phone, p_email)
+        RETURNING id INTO v_profile_id;
+    ELSE
+        -- Update profile with latest info
+        UPDATE public.profiles
+        SET name = p_name,
+            email = COALESCE(p_email, email)
+        WHERE id = v_profile_id;
+    END IF;
+    
+    RETURN v_profile_id;
+END;
+$$ LANGUAGE plpgsql;
 
 -- Function to create hospital session with patient data
 CREATE OR REPLACE FUNCTION create_hospital_session(
@@ -333,13 +392,22 @@ CREATE OR REPLACE FUNCTION create_home_care_request(
 ) RETURNS UUID AS $$
 DECLARE
     v_request_id UUID;
+    v_profile_id UUID;
 BEGIN
+    -- Get or create profile
+    v_profile_id := get_or_create_profile(
+        p_request_data->>'requesterName',
+        p_request_data->>'requesterContact'
+    );
+    
+    -- Insert home care request
     INSERT INTO public.home_care_requests (
-        address, latitude, longitude, is_patient,
+        profile_id, address, latitude, longitude, is_patient,
         patient_gender, patient_age, services,
         is_at_location, contact_person, patient_name,
         requester_name, requester_contact
     ) VALUES (
+        v_profile_id,
         p_request_data->>'address',
         (p_request_data->>'latitude')::NUMERIC,
         (p_request_data->>'longitude')::NUMERIC,
@@ -365,15 +433,24 @@ CREATE OR REPLACE FUNCTION create_health_supplies_request(
 ) RETURNS UUID AS $$
 DECLARE
     v_request_id UUID;
+    v_profile_id UUID;
     v_image TEXT;
 BEGIN
+    -- Get or create profile
+    v_profile_id := get_or_create_profile(
+        p_request_data->>'requesterName',
+        p_request_data->>'requesterContact'
+    );
+    
+    -- Insert health supplies request
     INSERT INTO public.health_supplies_requests (
-        has_prescription, what_needed, delivery_address,
+        profile_id, has_prescription, what_needed, delivery_address,
         delivery_latitude, delivery_longitude, urgency,
         flexible_date, recipient_type, recipient_name,
         recipient_gender, recipient_age, requester_name,
         requester_contact
     ) VALUES (
+        v_profile_id,
         (p_request_data->>'hasPrescription')::BOOLEAN,
         p_request_data->>'whatDoYouNeed',
         p_request_data->>'deliveryAddress',
@@ -400,6 +477,32 @@ BEGIN
     END IF;
     
     RETURN v_request_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to get all requests for a profile
+CREATE OR REPLACE FUNCTION get_profile_requests(
+    p_profile_id UUID
+) RETURNS JSONB AS $$
+DECLARE
+    v_result JSONB;
+BEGIN
+    SELECT jsonb_build_object(
+        'home_care_requests', (
+            SELECT COALESCE(jsonb_agg(row_to_json(hc.*)), '[]'::jsonb)
+            FROM public.home_care_requests hc
+            WHERE hc.profile_id = p_profile_id
+            ORDER BY hc.created_at DESC
+        ),
+        'health_supplies_requests', (
+            SELECT COALESCE(jsonb_agg(row_to_json(hs.*)), '[]'::jsonb)
+            FROM public.health_supplies_requests hs
+            WHERE hs.profile_id = p_profile_id
+            ORDER BY hs.created_at DESC
+        )
+    ) INTO v_result;
+    
+    RETURN v_result;
 END;
 $$ LANGUAGE plpgsql;
 
