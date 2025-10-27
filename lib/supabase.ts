@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 const getEnvVar = (key: string): string => {
   if (typeof process !== 'undefined' && process.env) {
@@ -21,18 +22,22 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('\nThen restart your dev server with: npx expo start --clear');
 }
 
-const url = supabaseUrl || 'https://placeholder.supabase.co';
-const key = supabaseAnonKey || 'placeholder-key';
+// Detect runtime environment
+const isBrowser = typeof window !== 'undefined';
 
-export const supabase = createClient(url, key, {
+// ✅ Use AsyncStorage only on native
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: AsyncStorage,
+    storage: isBrowser ? undefined : AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
   },
 });
 
+export { supabase };
+
+// --- Database typing (unchanged) ---
 export type Database = {
   public: {
     Tables: {
@@ -56,8 +61,13 @@ export type Database = {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['assistants']['Row'], 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Database['public']['Tables']['assistants']['Insert']>;
+        Insert: Omit<
+          Database['public']['Tables']['assistants']['Row'],
+          'id' | 'created_at' | 'updated_at'
+        >;
+        Update: Partial<
+          Database['public']['Tables']['assistants']['Insert']
+        >;
       };
       patients: {
         Row: {
@@ -76,8 +86,13 @@ export type Database = {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['patients']['Row'], 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Database['public']['Tables']['patients']['Insert']>;
+        Insert: Omit<
+          Database['public']['Tables']['patients']['Row'],
+          'id' | 'created_at' | 'updated_at'
+        >;
+        Update: Partial<
+          Database['public']['Tables']['patients']['Insert']
+        >;
       };
       hospitals: {
         Row: {
@@ -87,8 +102,13 @@ export type Database = {
           city: string;
           created_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['hospitals']['Row'], 'id' | 'created_at'>;
-        Update: Partial<Database['public']['Tables']['hospitals']['Insert']>;
+        Insert: Omit<
+          Database['public']['Tables']['hospitals']['Row'],
+          'id' | 'created_at'
+        >;
+        Update: Partial<
+          Database['public']['Tables']['hospitals']['Insert']
+        >;
       };
       sessions: {
         Row: {
@@ -101,7 +121,12 @@ export type Database = {
           hospital_id: string;
           hospital_name: string;
           assistant_id: string | null;
-          status: 'pending' | 'accepted' | 'in-progress' | 'completed' | 'declined';
+          status:
+            | 'pending'
+            | 'accepted'
+            | 'in-progress'
+            | 'completed'
+            | 'declined';
           created_at: string;
           accepted_at: string | null;
           completed_at: string | null;
@@ -117,8 +142,13 @@ export type Database = {
           invoice_review: string | null;
           invoice_paid_at: string | null;
         };
-        Insert: Omit<Database['public']['Tables']['sessions']['Row'], 'id' | 'created_at'>;
-        Update: Partial<Database['public']['Tables']['sessions']['Insert']>;
+        Insert: Omit<
+          Database['public']['Tables']['sessions']['Row'],
+          'id' | 'created_at'
+        >;
+        Update: Partial<
+          Database['public']['Tables']['sessions']['Insert']
+        >;
       };
       live_sessions: {
         Row: {
@@ -135,8 +165,13 @@ export type Database = {
           offline_notes: string | null;
           created_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['live_sessions']['Row'], 'id' | 'created_at'>;
-        Update: Partial<Database['public']['Tables']['live_sessions']['Insert']>;
+        Insert: Omit<
+          Database['public']['Tables']['live_sessions']['Row'],
+          'id' | 'created_at'
+        >;
+        Update: Partial<
+          Database['public']['Tables']['live_sessions']['Insert']
+        >;
       };
       session_media: {
         Row: {
@@ -146,8 +181,13 @@ export type Database = {
           type: string;
           created_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['session_media']['Row'], 'id' | 'created_at'>;
-        Update: Partial<Database['public']['Tables']['session_media']['Insert']>;
+        Insert: Omit<
+          Database['public']['Tables']['session_media']['Row'],
+          'id' | 'created_at'
+        >;
+        Update: Partial<
+          Database['public']['Tables']['session_media']['Insert']
+        >;
       };
     };
   };
