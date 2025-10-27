@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { MapPin, Search, ChevronRight, ArrowLeft } from "lucide-react-native";
 import { useState, useEffect } from "react";
 import {
+  Animated,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,6 +14,46 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+function HospitalCardSkeleton() {
+  const animatedValue = useState(() => new Animated.Value(0))[0];
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(animatedValue, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animatedValue, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [animatedValue]);
+
+  const opacity = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.7],
+  });
+
+  return (
+    <View style={styles.hospitalCard}>
+      <Animated.View style={[styles.skeletonIcon, { opacity }]} />
+      <View style={styles.hospitalInfo}>
+        <Animated.View style={[styles.skeletonLine, styles.skeletonTitle, { opacity }]} />
+        <Animated.View style={[styles.skeletonLine, styles.skeletonSubtitle, { opacity }]} />
+        <Animated.View style={[styles.skeletonLine, styles.skeletonTag, { opacity }]} />
+      </View>
+      <Animated.View style={[styles.skeletonChevron, { opacity }]} />
+    </View>
+  );
+}
 
 export default function HospitalSelectScreen() {
   const router = useRouter();
@@ -71,30 +112,36 @@ export default function HospitalSelectScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {filteredHospitals.map((hospital) => (
-          <Pressable
-            key={hospital.id}
-            style={({ pressed }) => [
-              styles.hospitalCard,
-              pressed && styles.hospitalCardPressed,
-            ]}
-            onPress={() => handleSelectHospital(hospital)}
-          >
-            <View style={styles.hospitalIcon}>
-              <MapPin size={24} color={colors.primary} />
-            </View>
-            <View style={styles.hospitalInfo}>
-              <Text style={styles.hospitalName}>{hospital.name}</Text>
-              <Text style={styles.hospitalLocation}>{hospital.location}</Text>
-              {hospital.availableAssistants !== undefined && (
-                <Text style={styles.assistantsAvailable}>
-                  {hospital.availableAssistants} assistant{hospital.availableAssistants !== 1 ? "s" : ""} available now
-                </Text>
-              )}
-            </View>
-            <ChevronRight size={24} color={colors.text.light} />
-          </Pressable>
-        ))}
+        {isLoadingHospitals ? (
+          Array.from({ length: 5 }).map((_, index) => (
+            <HospitalCardSkeleton key={index} />
+          ))
+        ) : (
+          filteredHospitals.map((hospital) => (
+            <Pressable
+              key={hospital.id}
+              style={({ pressed }) => [
+                styles.hospitalCard,
+                pressed && styles.hospitalCardPressed,
+              ]}
+              onPress={() => handleSelectHospital(hospital)}
+            >
+              <View style={styles.hospitalIcon}>
+                <MapPin size={24} color={colors.primary} />
+              </View>
+              <View style={styles.hospitalInfo}>
+                <Text style={styles.hospitalName}>{hospital.name}</Text>
+                <Text style={styles.hospitalLocation}>{hospital.location}</Text>
+                {hospital.availableAssistants !== undefined && (
+                  <Text style={styles.assistantsAvailable}>
+                    {hospital.availableAssistants} assistant{hospital.availableAssistants !== 1 ? "s" : ""} available now
+                  </Text>
+                )}
+              </View>
+              <ChevronRight size={24} color={colors.text.light} />
+            </Pressable>
+          ))
+        )}
       </ScrollView>
     </View>
   );
@@ -200,5 +247,35 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600" as const,
     color: colors.success,
+  },
+  skeletonIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.text.light,
+  },
+  skeletonLine: {
+    backgroundColor: colors.text.light,
+    borderRadius: 4,
+  },
+  skeletonTitle: {
+    height: 16,
+    width: "70%" as const,
+    marginBottom: 8,
+  },
+  skeletonSubtitle: {
+    height: 14,
+    width: "50%" as const,
+    marginBottom: 8,
+  },
+  skeletonTag: {
+    height: 13,
+    width: "40%" as const,
+  },
+  skeletonChevron: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.text.light,
   },
 });
