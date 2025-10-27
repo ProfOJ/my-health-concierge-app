@@ -24,6 +24,8 @@ export default function PatientLayout() {
         <Stack.Screen name="personal-info" options={{ title: "Your Information" }} />
         <Stack.Screen name="session" options={{ title: "Session Details" }} />
         <Stack.Screen name="request-success" options={{ headerShown: false }} />
+        <Stack.Screen name="dashboard" options={{ headerShown: false }} />
+        <Stack.Screen name="request-detail" options={{ title: "Request Details" }} />
       </Stack>
     </PatientRequestProvider>
   );

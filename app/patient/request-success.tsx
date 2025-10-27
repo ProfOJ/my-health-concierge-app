@@ -10,7 +10,7 @@ export default function RequestSuccessScreen() {
   const insets = useSafeAreaInsets();
 
   const handleCheckStatus = () => {
-    router.push("/patient/session");
+    router.push("/patient/dashboard");
   };
 
   return (
