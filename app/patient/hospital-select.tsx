@@ -2,6 +2,7 @@ import colors from "@/constants/colors";
 import type { Hospital } from "@/constants/hospitals";
 import { hospitalApi } from "@/lib/api";
 import { useRouter } from "expo-router";
+import { usePatientRequest } from "@/contexts/PatientRequestContext";
 import { MapPin, Search, ChevronRight, ArrowLeft } from "lucide-react-native";
 import { useState, useEffect } from "react";
 import {
@@ -58,6 +59,7 @@ function HospitalCardSkeleton() {
 export default function HospitalSelectScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { setHospital } = usePatientRequest();
   const [searchQuery, setSearchQuery] = useState("");
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
   const [isLoadingHospitals, setIsLoadingHospitals] = useState(true);
@@ -81,6 +83,7 @@ export default function HospitalSelectScreen() {
   );
 
   const handleSelectHospital = (hospital: Hospital) => {
+    setHospital(hospital);
     router.push("/patient/assistant-select");
   };
 

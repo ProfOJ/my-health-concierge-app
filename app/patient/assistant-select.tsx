@@ -2,6 +2,7 @@ import { Button } from "@/components/Button";
 import colors from "@/constants/colors";
 import { HEALTH_ASSISTANTS } from "@/constants/assistants";
 import { useRouter } from "expo-router";
+import { usePatientRequest } from "@/contexts/PatientRequestContext";
 import { Star, MapPin } from "lucide-react-native";
 import { useState } from "react";
 import {
@@ -15,10 +16,12 @@ import {
 
 export default function AssistantSelectScreen() {
   const router = useRouter();
+  const { setAssistant } = usePatientRequest();
   const [selectedAssistant, setSelectedAssistant] = useState<string | null>(null);
   const [autoMatch, setAutoMatch] = useState(false);
 
   const handleRequest = () => {
+    setAssistant(autoMatch ? null : selectedAssistant);
     router.push("/patient/personal-info");
   };
 

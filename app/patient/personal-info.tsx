@@ -4,10 +4,14 @@ import colors from "@/constants/colors";
 import { useRouter } from "expo-router";
 import { Check } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View, Alert } from "react-native";
+import { usePatientRequest } from "@/contexts/PatientRequestContext";
+import { supabase } from "@/lib/supabase";
 
 export default function PersonalInfoScreen() {
   const router = useRouter();
+  const { hospital, assistantId, clearRequest } = usePatientRequest();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     contact: "",
@@ -20,8 +24,80 @@ export default function PersonalInfoScreen() {
     cardDetails: "",
   });
 
-  const handleSubmit = () => {
-    router.replace("/patient/session");
+  const handleSubmit = async () => {
+    if (!hospital) {
+      Alert.alert("Error", "Hospital information is missing. Please go back and select a hospital.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { data: patientData, error: patientError } = await supabase
+        .from("patients")
+        .insert({
+          name: formData.name,
+          contact: formData.contact,
+          location: formData.location,
+          is_patient: formData.isPatient,
+          has_insurance: formData.hasInsurance,
+          insurance_provider: formData.hasInsurance ? formData.insuranceProvider : null,
+          insurance_number: formData.hasInsurance ? formData.insuranceNumber : null,
+          has_card: formData.hasCard,
+          card_details: formData.hasCard ? formData.cardDetails : null,
+        })
+        .select()
+        .single();
+
+      if (patientError) {
+        console.error("Failed to create patient:", patientError);
+        throw patientError;
+      }
+
+      console.log("Patient created successfully:", patientData.id);
+
+      const estimatedArrival = new Date();
+      estimatedArrival.setMinutes(estimatedArrival.getMinutes() + 30);
+
+      const { data: sessionData, error: sessionError } = await supabase
+        .from("hospital_sessions")
+        .insert({
+          patient_id: patientData.id,
+          patient_name: formData.name,
+          patient_gender: "Not specified",
+          patient_age_range: "Not specified",
+          hospital_id: hospital.id,
+          hospital_name: hospital.name,
+          assistant_id: assistantId || null,
+          requester_name: formData.name,
+          is_requester_patient: formData.isPatient,
+          estimated_arrival: estimatedArrival.toISOString(),
+          location: formData.location,
+          has_insurance: formData.hasInsurance,
+          insurance_provider: formData.hasInsurance ? formData.insuranceProvider : null,
+          has_card: formData.hasCard,
+          status: "pending",
+        })
+        .select()
+        .single();
+
+      if (sessionError) {
+        console.error("Failed to create hospital session:", sessionError);
+        throw sessionError;
+      }
+
+      console.log("Hospital session created successfully:", sessionData.id);
+
+      clearRequest();
+      router.replace("/patient/request-success");
+    } catch (error) {
+      console.error("Error submitting hospital assistance request:", error);
+      Alert.alert(
+        "Submission Failed",
+        "Failed to submit your request. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isValid = formData.name && formData.contact && formData.location;
@@ -225,7 +301,11 @@ export default function PersonalInfoScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Button title="Submit Request" onPress={handleSubmit} disabled={!isValid} />
+        <Button 
+          title={isSubmitting ? "Submitting..." : "Submit Request"} 
+          onPress={handleSubmit} 
+          disabled={!isValid || isSubmitting} 
+        />
       </View>
     </View>
   );
