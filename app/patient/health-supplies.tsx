@@ -52,23 +52,10 @@ export default function HealthSuppliesScreen() {
       }
 
       const location = await Location.getCurrentPositionAsync({});
-      const [addressResult] = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-
-      if (addressResult) {
-        const formattedAddress = [
-          addressResult.name,
-          addressResult.street,
-          addressResult.city,
-          addressResult.region,
-          addressResult.country,
-        ]
-          .filter(Boolean)
-          .join(", ");
-        setDeliveryAddress(formattedAddress);
-      }
+      const { latitude, longitude } = location.coords;
+      
+      const formattedAddress = `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`;
+      setDeliveryAddress(formattedAddress);
     } catch (error) {
       console.error("Error getting location:", error);
       alert("Failed to get current location");
