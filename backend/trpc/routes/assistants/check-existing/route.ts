@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
-import { getSupabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 export const checkExistingAssistantProcedure = publicProcedure
   .input(
@@ -17,7 +17,6 @@ export const checkExistingAssistantProcedure = publicProcedure
     }
 
     try {
-      const supabase = await getSupabase();
       let query = supabase.from("assistants").select("*");
 
       if (input.email && input.phone) {

@@ -1,7 +1,7 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-// Singleton
-let supabase: SupabaseClient | null = null;
+// Singleton for async client (with AsyncStorage)
+let supabaseInstance: SupabaseClient | null = null;
 
 // Helper for environment vars
 const getEnvVar = (key: string): string =>
@@ -32,10 +32,19 @@ const createSupabaseClient = async (): Promise<SupabaseClient> => {
 
 // Public getter: ensures a single instance (async)
 export const getSupabase = async (): Promise<SupabaseClient> => {
-  if (!supabase) {
-    supabase = await createSupabaseClient();
+  if (!supabaseInstance) {
+    supabaseInstance = await createSupabaseClient();
   }
-  return supabase;
+  return supabaseInstance;
 };
+
+// Simple synchronous client for backend/server use (no AsyncStorage)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: false,
+    detectSessionInUrl: false,
+  },
+});
 
 export type { SupabaseClient };

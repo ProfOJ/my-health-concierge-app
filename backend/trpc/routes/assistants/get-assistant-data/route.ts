@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { publicProcedure } from "../../../create-context";
-import { getSupabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 export const getAssistantDataProcedure = publicProcedure
   .input(z.object({ assistantId: z.string().uuid() }))
@@ -8,7 +8,6 @@ export const getAssistantDataProcedure = publicProcedure
     console.log("📊 Fetching assistant data for:", input.assistantId);
 
     try {
-      const supabase = await getSupabase();
       const [assistantResult, sessionsResult, homeCareResult, liveSessions] = await Promise.all([
         supabase.from("assistants").select("*").eq("id", input.assistantId).single(),
         supabase
