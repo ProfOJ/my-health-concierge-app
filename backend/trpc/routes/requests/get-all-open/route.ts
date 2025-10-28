@@ -1,7 +1,7 @@
 import { publicProcedure } from "@/backend/trpc/create-context";
 import { supabase } from "@/lib/supabase";
 
-export default publicProcedure.query(async () => {
+export const getAllOpenProcedure = publicProcedure.query(async () => {
   const [hospitalSessionsResult, homeCareResult, healthSuppliesResult] = await Promise.all([
     supabase
       .from("hospital_sessions")
