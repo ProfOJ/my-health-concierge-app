@@ -6,16 +6,32 @@ import type {
   LiveSession,
 } from '@/contexts/AppContext';
 
+import Constants from 'expo-constants';
+
 const getEnvVar = (key: string): string => {
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env[key] || '';
+  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    return process.env[key];
   }
+  
+  const expoConfig = Constants.expoConfig;
+  const extra = expoConfig?.extra;
+  
+  if (extra && extra[key]) {
+    return extra[key];
+  }
+  
   return '';
 };
 
-const API_BASE_URL = getEnvVar('EXPO_PUBLIC_SUPABASE_URL');
+const API_BASE_URL = getEnvVar('EXPO_PUBLIC_SUPABASE_URL') || process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+const anonKey = getEnvVar('EXPO_PUBLIC_SUPABASE_ANON_KEY') || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
-const anonKey = getEnvVar('EXPO_PUBLIC_SUPABASE_ANON_KEY');
+if (!API_BASE_URL || !anonKey) {
+  console.error('❌ Missing Supabase configuration!');
+  console.error('API_BASE_URL:', API_BASE_URL);
+  console.error('anonKey:', anonKey ? 'present' : 'missing');
+  console.error('process.env keys:', Object.keys(process.env || {}).filter(k => k.includes('SUPABASE')));
+}
 
 export const api = axios.create({
   baseURL: `${API_BASE_URL}/rest/v1`,
@@ -391,8 +407,16 @@ export const statsApi = {
 
 export const hospitalApi = {
   async getAll() {
+    console.log('🏥 Fetching hospitals from:', `${API_BASE_URL}/rest/v1/hospitals`);
     const { data } = await api.get('/hospitals');
-    return data;
+    console.log('🏥 Fetched hospitals:', data);
+    return data.map((hospital: Record<string, unknown>) => ({
+      id: hospital.id as string,
+      name: hospital.name as string,
+      location: hospital.location as string,
+      city: hospital.city as string,
+      availableAssistants: hospital.available_assistants as number | undefined,
+    }));
   },
 
   async getById(id: string) {
