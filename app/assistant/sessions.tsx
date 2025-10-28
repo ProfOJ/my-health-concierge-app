@@ -1,7 +1,7 @@
 import colors from "@/constants/colors";
 import { useApp } from "@/contexts/AppContext";
 import { useRouter } from "expo-router";
-import { Briefcase, Check, Clock, Search, User, X, Home, Package } from "lucide-react-native";
+import { Briefcase, Check, Clock, Search, User, X, Home, Package, Eye, CheckCircle } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, ActivityIndicator } from "react-native";
 import { trpc } from "@/lib/trpc";
@@ -53,6 +53,12 @@ type UnifiedRequest = {
   createdAt: string;
   estimatedArrival?: string;
   requesterName: string;
+};
+
+type RequestTypeLabel = {
+  label: string;
+  color: string;
+  icon: typeof Home;
 };
 
 export default function SessionsScreen() {
@@ -205,6 +211,25 @@ export default function SessionsScreen() {
     }
   };
 
+  const getRequestTypeLabel = (type: string): RequestTypeLabel => {
+    switch (type) {
+      case "home_care":
+        return { label: "Home Care", color: "#6366F1", icon: Home };
+      case "health_supplies":
+        return { label: "Health Supplies", color: "#10B981", icon: Package };
+      default:
+        return { label: "Hospital Assistance", color: "#F59E0B", icon: User };
+    }
+  };
+
+  const handleViewRequest = (request: UnifiedRequest) => {
+    console.log("Viewing request:", request.id, request.type);
+  };
+
+  const handleAcceptRequest = (request: UnifiedRequest) => {
+    console.log("Accepting request:", request.id, request.type);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
@@ -295,64 +320,86 @@ export default function SessionsScreen() {
           </View>
         ) : isOpenFilter && isUnifiedList ? (
           <View style={styles.sessionsList}>
-            {(filteredData as UnifiedRequest[]).map((request) => (
-              <Pressable
-                key={request.id}
-                style={({ pressed }) => [
-                  styles.sessionCard,
-                  pressed && styles.sessionCardPressed,
-                ]}
-              >
-                <View style={styles.sessionHeader}>
-                  <View style={styles.userIcon}>
-                    {getRequestIcon(request.type)}
-                  </View>
-                  <View style={styles.sessionInfo}>
-                    <Text style={styles.requesterName}>
-                      {request.requesterName}
-                    </Text>
-                    <Text style={styles.patientName}>
-                      {request.title}
-                    </Text>
-                    <Text style={styles.specialService}>
-                      {request.subtitle}
+            {(filteredData as UnifiedRequest[]).map((request) => {
+              const typeLabel = getRequestTypeLabel(request.type);
+              return (
+                <View
+                  key={request.id}
+                  style={styles.sessionCard}
+                >
+                  <View style={[styles.requestTypeBadge, { backgroundColor: `${typeLabel.color}15` }]}>
+                    <Text style={[styles.requestTypeText, { color: typeLabel.color }]}>
+                      {typeLabel.label}
                     </Text>
                   </View>
-                </View>
 
-                <View style={styles.sessionDetails}>
-                  <View style={styles.detailRow}>
-                    <Clock size={16} color={colors.text.secondary} />
-                    <Text style={styles.detailText}>
-                      {request.location}
-                    </Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Clock size={16} color={colors.text.secondary} />
-                    <Text style={styles.detailText}>
-                      Requested: {getTimeAgo(request.createdAt)}
-                    </Text>
-                  </View>
-                  {request.estimatedArrival && (
-                    <View style={styles.detailRow}>
-                      <Clock size={16} color={colors.accent} />
-                      <Text style={[styles.detailText, styles.etaText]}>
-                        ETA: {getETA(request.estimatedArrival)}
+                  <View style={styles.sessionHeader}>
+                    <View style={styles.userIcon}>
+                      {getRequestIcon(request.type)}
+                    </View>
+                    <View style={styles.sessionInfo}>
+                      <Text style={styles.requesterName}>
+                        {request.requesterName}
+                      </Text>
+                      {request.title !== request.requesterName && (
+                        <Text style={styles.patientName}>
+                          {request.title}
+                        </Text>
+                      )}
+                      <Text style={styles.specialService}>
+                        {request.subtitle}
                       </Text>
                     </View>
-                  )}
-                </View>
+                  </View>
 
-                <View style={styles.statusBadge}>
-                  <View
-                    style={[styles.statusDot, { backgroundColor: getStatusColor(request.status) }]}
-                  />
-                  <Text style={[styles.statusText, { color: getStatusColor(request.status) }]}>
-                    {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                  </Text>
+                  <View style={styles.sessionDetails}>
+                    <View style={styles.detailRow}>
+                      <Clock size={16} color={colors.text.secondary} />
+                      <Text style={styles.detailText}>
+                        {request.location}
+                      </Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Clock size={16} color={colors.text.secondary} />
+                      <Text style={styles.detailText}>
+                        {getTimeAgo(request.createdAt)}
+                      </Text>
+                    </View>
+                    {request.estimatedArrival && (
+                      <View style={styles.detailRow}>
+                        <Clock size={16} color={colors.accent} />
+                        <Text style={[styles.detailText, styles.etaText]}>
+                          ETA: {getETA(request.estimatedArrival)}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.requestActions}>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.iconButton,
+                        styles.acceptIconButton,
+                        pressed && styles.iconButtonPressed,
+                      ]}
+                      onPress={() => handleAcceptRequest(request)}
+                    >
+                      <CheckCircle size={20} color={colors.text.inverse} />
+                    </Pressable>
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.iconButton,
+                        styles.viewIconButton,
+                        pressed && styles.iconButtonPressed,
+                      ]}
+                      onPress={() => handleViewRequest(request)}
+                    >
+                      <Eye size={20} color={colors.primary} />
+                    </Pressable>
+                  </View>
                 </View>
-              </Pressable>
-            ))}
+              );
+            })}
           </View>
         ) : (
           <View style={styles.sessionsList}>
@@ -670,5 +717,43 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: colors.text.secondary,
+  },
+  requestTypeBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  requestTypeText: {
+    fontSize: 12,
+    fontWeight: "700" as const,
+    textTransform: "uppercase" as const,
+    letterSpacing: 0.5,
+  },
+  requestActions: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 4,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+  },
+  acceptIconButton: {
+    backgroundColor: colors.success,
+    borderColor: colors.success,
+  },
+  viewIconButton: {
+    backgroundColor: colors.background.secondary,
+    borderColor: colors.border.medium,
+  },
+  iconButtonPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.95 }],
   },
 });
