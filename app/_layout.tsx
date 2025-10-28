@@ -5,12 +5,30 @@ import React, { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AppContextProvider } from "@/contexts/AppContext";
 import colors from "@/constants/colors";
-import { trpc, trpcClient } from "@/lib/trpc";
+import { trpc } from "@/lib/trpc";
+import { httpBatchLink } from "@trpc/client";
+import superjson from "superjson";
 import { Platform, Dimensions, View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
+
+const getBaseUrl = () => {
+  if (process.env.EXPO_PUBLIC_RORK_API_BASE_URL) {
+    return process.env.EXPO_PUBLIC_RORK_API_BASE_URL;
+  }
+  throw new Error("No base url found, please set EXPO_PUBLIC_RORK_API_BASE_URL");
+};
+
+const trpcClient = trpc.createClient({
+  links: [
+    httpBatchLink({
+      url: `${getBaseUrl()}/api/trpc`,
+      transformer: superjson,
+    }),
+  ],
+});
 
 function RootLayoutNav() {
   return (
