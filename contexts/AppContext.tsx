@@ -140,13 +140,17 @@ export const [AppContextProvider, useApp] = createContextHook(() => {
   }, []);
 
   const saveAssistantProfile = useCallback(
-    async (profile: AssistantProfile) => {
+    async (profile: AssistantProfile, skipDbSave?: boolean) => {
       try {
         let savedProfile: AssistantProfile;
         const isValidUUID = profile.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(profile.id);
         
-        if (isValidUUID) {
+        if (skipDbSave && isValidUUID) {
+          savedProfile = profile;
+          await AsyncStorage.setItem(STORAGE_KEYS.ASSISTANT_ID, savedProfile.id);
+        } else if (isValidUUID) {
           savedProfile = await assistantApi.update(profile.id, profile);
+          await AsyncStorage.setItem(STORAGE_KEYS.ASSISTANT_ID, savedProfile.id);
         } else {
           const { id, ...profileWithoutId } = profile;
           savedProfile = await assistantApi.create(profileWithoutId);

@@ -2,15 +2,18 @@ import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import colors from "@/constants/colors";
 import { useOnboarding } from "@/contexts/OnboardingContext";
+import { useApp } from "@/contexts/AppContext";
 import { Stack, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { ArrowLeft, Camera } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View, ActivityIndicator, Alert } from "react-native";
+import { trpcClient } from "@/lib/trpc";
 
 export default function GeneralInfoScreen() {
   const router = useRouter();
   const { onboardingData, updateOnboardingData } = useOnboarding();
+  const { saveAssistantProfile } = useApp();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -18,6 +21,7 @@ export default function GeneralInfoScreen() {
     address: "",
     photo: "",
   });
+  const [isCheckingExisting, setIsCheckingExisting] = useState(false);
 
   useEffect(() => {
     if (onboardingData.name) setFormData(prev => ({ ...prev, name: onboardingData.name || "" }));
@@ -40,15 +44,83 @@ export default function GeneralInfoScreen() {
     }
   };
 
+  const checkExistingAssistant = async (): Promise<boolean> => {
+    if (!formData.email && !formData.phone) return false;
+
+    setIsCheckingExisting(true);
+    try {
+      console.log("🔍 Checking for existing assistant...");
+      const result = await trpcClient.assistants.checkExisting.query({
+        email: formData.email || undefined,
+        phone: formData.phone || undefined,
+      });
+
+      if (result.exists && result.assistant) {
+        console.log("✅ Found existing assistant, logging in...");
+        
+        return new Promise((resolve) => {
+          Alert.alert(
+            "Welcome Back!",
+            `Found existing profile for ${result.assistant.name}. Logging you in...`,
+            [
+              {
+                text: "OK",
+                onPress: async () => {
+                  try {
+                    const fullData = await trpcClient.assistants.getAssistantData.query({
+                      assistantId: result.assistant.id,
+                    });
+
+                    await saveAssistantProfile(
+                      {
+                        ...fullData.assistant,
+                        rateRange: fullData.assistant.rateMin && fullData.assistant.rateMax
+                          ? { min: fullData.assistant.rateMin, max: fullData.assistant.rateMax }
+                          : undefined,
+                      },
+                      true
+                    );
+
+                    console.log("✅ Profile loaded, redirecting to dashboard...");
+                    router.replace("/assistant/dashboard");
+                    resolve(true);
+                  } catch (error) {
+                    console.error("❌ Error loading assistant data:", error);
+                    Alert.alert(
+                      "Error",
+                      "Failed to load your profile data. Please try again.",
+                      [{ text: "OK" }]
+                    );
+                    resolve(false);
+                  }
+                },
+              },
+            ]
+          );
+        });
+      }
+      return false;
+    } catch (error) {
+      console.error("❌ Error checking for existing assistant:", error);
+      return false;
+    } finally {
+      setIsCheckingExisting(false);
+    }
+  };
+
   const handleContinue = async () => {
-    await updateOnboardingData({
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      address: formData.address,
-      photo: formData.photo,
-    });
-    router.push("/assistant/onboarding/kyc");
+    const foundExisting = await checkExistingAssistant();
+    
+    if (!foundExisting) {
+      await updateOnboardingData({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        photo: formData.photo,
+      });
+      router.push("/assistant/onboarding/kyc");
+    }
   };
 
   const isValid =
@@ -123,7 +195,17 @@ export default function GeneralInfoScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Button title="Continue" onPress={handleContinue} disabled={!isValid} />
+        {isCheckingExisting && (
+          <View style={styles.checkingContainer}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.checkingText}>Checking for existing profile...</Text>
+          </View>
+        )}
+        <Button 
+          title="Continue" 
+          onPress={handleContinue} 
+          disabled={!isValid || isCheckingExisting} 
+        />
       </View>
     </View>
   );
@@ -180,5 +262,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 12,
     elevation: 8,
+  },
+  checkingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+    gap: 8,
+  },
+  checkingText: {
+    fontSize: 14,
+    color: colors.text.secondary,
   },
 });
