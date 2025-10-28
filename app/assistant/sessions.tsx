@@ -1,21 +1,72 @@
 import colors from "@/constants/colors";
 import { useApp } from "@/contexts/AppContext";
 import { useRouter } from "expo-router";
-import { Briefcase, Check, Clock, Search, User, X } from "lucide-react-native";
+import { Briefcase, Check, Clock, Search, User, X, Home, Package } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, ActivityIndicator } from "react-native";
+import { trpc } from "@/lib/trpc";
 
 type FilterType = "all" | "pending" | "ongoing" | "completed" | "open";
+
+type HospitalSession = {
+  id: string;
+  patient_name: string;
+  hospital_name: string;
+  special_service?: string;
+  status: string;
+  created_at: string;
+  estimated_arrival: string;
+  requester_name: string;
+  is_requester_patient: boolean;
+};
+
+type HomeCareRequest = {
+  id: string;
+  patient_name?: string;
+  requester_name: string;
+  address: string;
+  services: string[];
+  status: string;
+  created_at: string;
+  is_patient: boolean;
+};
+
+type HealthSuppliesRequest = {
+  id: string;
+  requester_name: string;
+  recipient_name?: string;
+  recipient_type: string;
+  what_needed?: string;
+  urgency: string;
+  status: string;
+  created_at: string;
+  delivery_address: string;
+};
+
+type UnifiedRequest = {
+  id: string;
+  type: "hospital" | "home_care" | "health_supplies";
+  title: string;
+  subtitle: string;
+  location: string;
+  status: string;
+  createdAt: string;
+  estimatedArrival?: string;
+  requesterName: string;
+};
 
 export default function SessionsScreen() {
   const { sessions, updateSession, refreshSessions } = useApp();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [activeFilter, setActiveFilter] = useState<FilterType>("open");
+
+  const { data: openRequestsData, isLoading, refetch } = trpc.requests.getAllOpen.useQuery();
 
   useEffect(() => {
     refreshSessions();
-  }, [refreshSessions]);
+    refetch();
+  }, [refreshSessions, refetch]);
 
   const handleAccept = (sessionId: string) => {
     updateSession(sessionId, {
@@ -57,6 +108,54 @@ export default function SessionsScreen() {
     return `${hours}h ${remainingMins}m`;
   };
 
+  const mapToUnifiedRequests = (): UnifiedRequest[] => {
+    if (!openRequestsData) return [];
+
+    const unified: UnifiedRequest[] = [];
+
+    openRequestsData.hospitalSessions.forEach((session: HospitalSession) => {
+      unified.push({
+        id: session.id,
+        type: "hospital",
+        title: session.patient_name,
+        subtitle: session.special_service || "Hospital Assistance",
+        location: session.hospital_name,
+        status: session.status,
+        createdAt: session.created_at,
+        estimatedArrival: session.estimated_arrival,
+        requesterName: session.requester_name,
+      });
+    });
+
+    openRequestsData.homeCareRequests.forEach((request: HomeCareRequest) => {
+      unified.push({
+        id: request.id,
+        type: "home_care",
+        title: request.patient_name || request.requester_name,
+        subtitle: request.services.join(", "),
+        location: request.address,
+        status: request.status,
+        createdAt: request.created_at,
+        requesterName: request.requester_name,
+      });
+    });
+
+    openRequestsData.healthSuppliesRequests.forEach((request: HealthSuppliesRequest) => {
+      unified.push({
+        id: request.id,
+        type: "health_supplies",
+        title: request.recipient_name || request.requester_name,
+        subtitle: request.what_needed || `Health Supplies (${request.urgency})`,
+        location: request.delivery_address,
+        status: request.status,
+        createdAt: request.created_at,
+        requesterName: request.requester_name,
+      });
+    });
+
+    return unified.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  };
+
   const getFilteredSessions = () => {
     let filtered = sessions;
 
@@ -71,10 +170,7 @@ export default function SessionsScreen() {
         filtered = sessions.filter((s) => s.status === "completed");
         break;
       case "open":
-        filtered = sessions.filter(
-          (s) => s.status !== "completed" && s.status !== "declined"
-        );
-        break;
+        return mapToUnifiedRequests();
       case "all":
       default:
         filtered = sessions.filter((s) => s.status !== "declined");
@@ -94,7 +190,33 @@ export default function SessionsScreen() {
     return filtered;
   };
 
-  const filteredSessions = getFilteredSessions();
+  const filteredData = getFilteredSessions();
+  const isOpenFilter = activeFilter === "open";
+  const isUnifiedList = Array.isArray(filteredData) && filteredData.length > 0 && "type" in filteredData[0];
+  
+  const getRequestIcon = (type: string) => {
+    switch (type) {
+      case "home_care":
+        return <Home size={24} color={colors.primary} />;
+      case "health_supplies":
+        return <Package size={24} color={colors.primary} />;
+      default:
+        return <User size={24} color={colors.primary} />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "pending":
+        return colors.accent;
+      case "accepted":
+      case "assigned":
+      case "processing":
+        return colors.success;
+      default:
+        return colors.text.secondary;
+    }
+  };
 
   const filters: { type: FilterType; label: string }[] = [
     { type: "all", label: "All" },
@@ -150,7 +272,12 @@ export default function SessionsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {filteredSessions.length === 0 ? (
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Loading requests...</Text>
+          </View>
+        ) : filteredData.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIcon}>
               <Briefcase size={40} color={colors.text.light} />
@@ -166,9 +293,70 @@ export default function SessionsScreen() {
                 : "Your session requests will appear here"}
             </Text>
           </View>
+        ) : isOpenFilter && isUnifiedList ? (
+          <View style={styles.sessionsList}>
+            {(filteredData as UnifiedRequest[]).map((request) => (
+              <Pressable
+                key={request.id}
+                style={({ pressed }) => [
+                  styles.sessionCard,
+                  pressed && styles.sessionCardPressed,
+                ]}
+              >
+                <View style={styles.sessionHeader}>
+                  <View style={styles.userIcon}>
+                    {getRequestIcon(request.type)}
+                  </View>
+                  <View style={styles.sessionInfo}>
+                    <Text style={styles.requesterName}>
+                      {request.requesterName}
+                    </Text>
+                    <Text style={styles.patientName}>
+                      {request.title}
+                    </Text>
+                    <Text style={styles.specialService}>
+                      {request.subtitle}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.sessionDetails}>
+                  <View style={styles.detailRow}>
+                    <Clock size={16} color={colors.text.secondary} />
+                    <Text style={styles.detailText}>
+                      {request.location}
+                    </Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Clock size={16} color={colors.text.secondary} />
+                    <Text style={styles.detailText}>
+                      Requested: {getTimeAgo(request.createdAt)}
+                    </Text>
+                  </View>
+                  {request.estimatedArrival && (
+                    <View style={styles.detailRow}>
+                      <Clock size={16} color={colors.accent} />
+                      <Text style={[styles.detailText, styles.etaText]}>
+                        ETA: {getETA(request.estimatedArrival)}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.statusBadge}>
+                  <View
+                    style={[styles.statusDot, { backgroundColor: getStatusColor(request.status) }]}
+                  />
+                  <Text style={[styles.statusText, { color: getStatusColor(request.status) }]}>
+                    {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                  </Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
         ) : (
           <View style={styles.sessionsList}>
-            {filteredSessions.map((session) => (
+            {(filteredData as typeof sessions).map((session) => (
               <Pressable
                 key={session.id}
                 style={({ pressed }) => [
@@ -472,5 +660,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600" as const,
     color: colors.success,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: colors.text.secondary,
   },
 });
