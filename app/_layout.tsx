@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AppContextProvider } from "@/contexts/AppContext";
 import colors from "@/constants/colors";
 import { trpc } from "@/lib/trpc";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
 import { Platform, Dimensions, View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
@@ -173,6 +174,17 @@ export default function RootLayout() {
       if (width > 768) {
         setShowMobilePrompt(true);
       }
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker
+          .register('/sw.js')
+          .then((registration) => {
+            console.log('✅ Service Worker registered:', registration);
+          })
+          .catch((error) => {
+            console.error('❌ Service Worker registration failed:', error);
+          });
+      }
     }
   }, []);
 
@@ -198,8 +210,18 @@ export default function RootLayout() {
   }
 
   if (continueOnWeb && Platform.OS === "web") {
-    return <MobileContainer>{content}</MobileContainer>;
+    return (
+      <>
+        <PWAInstallPrompt />
+        <MobileContainer>{content}</MobileContainer>
+      </>
+    );
   }
 
-  return content;
+  return (
+    <>
+      <PWAInstallPrompt />
+      {content}
+    </>
+  );
 }
